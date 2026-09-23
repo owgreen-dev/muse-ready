@@ -60,8 +60,36 @@ describe("cli", () => {
     expect(JSON.parse(readFileSync(out("b.json"), "utf8")).schemaVersion).toBe(1);
   });
 
+  it("--probe-allow-private probes a local API with GET only and prints a summary", async () => {
+    const { createServer } = await import("node:http");
+    const { writeFileSync } = await import("node:fs");
+    const seen: string[] = [];
+    const server = createServer((req, res) => {
+      seen.push(req.method ?? "");
+      res.end("[]");
+    });
+    await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+    try {
+      const port = (server.address() as import("node:net").AddressInfo).port;
+      const dir = mkdtempSync(join(tmpdir(), "muse-ready-cli-probe-"));
+      const spec = join(dir, "openapi.json");
+      writeFileSync(spec, JSON.stringify({
+        openapi: "3.1.0", info: { title: "Local", version: "1" }, servers: [{ url: `http://127.0.0.1:${port}` }],
+        paths: { "/items": { get: { operationId: "listItems", summary: "List items", responses: { "200": { description: "ok" } } },
+                             delete: { operationId: "deleteItems", summary: "Delete items", responses: { "204": { description: "gone" } } } } },
+      }));
+      const { stdout, stderr } = await runCli([spec, "--probe-allow-private", "--no-color"]);
+      expect(stderr).toContain("read-only GET");
+      expect(stdout).toMatch(/Probe: \d+ GET requests? to http:\/\/127\.0\.0\.1:\d+\/, \d+ answered\./);
+      expect(seen.length).toBeGreaterThan(0);
+      expect(seen.every((m) => m === "GET")).toBe(true);
+    } finally {
+      server.close();
+    }
+  });
+
   it("lists rules", async () => {
     const { stdout } = await runCli(["--list-rules"]);
-    expect(stdout.trim().split("\n")).toHaveLength(16);
+    expect(stdout.trim().split("\n")).toHaveLength(20);
   });
 });

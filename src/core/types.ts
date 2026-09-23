@@ -8,6 +8,7 @@ export type Category =
   | "injection"
   | "errors"
   | "network"
+  | "performance"
   | "metadata";
 export type InputKind = "openapi" | "mcp";
 /** Which headline sub-score a rule feeds. */
@@ -72,9 +73,41 @@ export interface LoadedInput {
   tools?: McpTool[];
 }
 
+/** One request the live probe made. Paths have query values redacted. */
+export interface ProbeRequest {
+  method: string;
+  path: string;
+  /** Operation label, e.g. "GET /items", when the request exercised a documented operation. */
+  operation?: string;
+  status?: number;
+  ms?: number;
+  bytes?: number;
+  truncated?: boolean;
+  /** Whether a credential was attached (never the credential itself). */
+  authenticated?: boolean;
+  error?: { code: string; message: string };
+  /** First 4 KiB of the body, for leak checks. Not included in reports. */
+  bodySample?: string;
+}
+
+export interface ProbeResult {
+  enabled: true;
+  /** Base URL probed, redacted. */
+  target: string;
+  dns?: { addresses: string[]; blocked: string[]; error?: string };
+  tls?: { verified: boolean; error?: string };
+  requests: ProbeRequest[];
+  /** Operations the probe skipped, with the reason. */
+  skipped: { operation: string; reason: string }[];
+  /** Set when the probe could not start, e.g. no server URL. */
+  error?: string;
+}
+
 export interface RuleContext {
   input: LoadedInput;
   connector: ConnectorMeta;
+  /** Present only when the user asked for --probe. */
+  probe?: ProbeResult;
 }
 
 export interface Rule {
@@ -112,5 +145,7 @@ export interface Report {
   input: { source: string; kind: InputKind; title?: string; version?: string };
   score: Score;
   gate: { passed: boolean; blocking: string[] };
+  /** Summary of live probing; absent unless --probe was used. */
+  probe?: { enabled: true; target: string; requests: Omit<ProbeRequest, "bodySample">[]; skipped: { operation: string; reason: string }[]; error?: string };
   results: RuleResult[];
 }

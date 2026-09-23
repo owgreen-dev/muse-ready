@@ -1,17 +1,17 @@
 import type { Config } from "./config.js";
 import { makeLineLocator } from "./lines.js";
 import { computeGate, computeScore } from "./score.js";
-import type { LoadedInput, Report, Rule, RuleContext, RuleResult } from "./types.js";
+import type { ConnectorMeta, LoadedInput, ProbeResult, Report, Rule, RuleContext, RuleResult } from "./types.js";
 import { RULESET_DATE, TOOL_NAME, TOOL_VERSION } from "./version.js";
 
-function connectorFrom(input: LoadedInput, config: Config) {
+export function connectorFrom(input: LoadedInput, config: Config): ConnectorMeta {
   // OpenAPI docs may carry Muse metadata under info.x-muse; the config file wins over it.
   const fromSpec = input.kind === "openapi" ? (input.doc?.info?.["x-muse"] ?? {}) : {};
   return { ...fromSpec, ...(config.connector ?? {}) };
 }
 
-export async function runRules(input: LoadedInput, rules: Rule[], config: Config = {}): Promise<Report> {
-  const ctx: RuleContext = { input, connector: connectorFrom(input, config) };
+export async function runRules(input: LoadedInput, rules: Rule[], config: Config = {}, probe?: ProbeResult): Promise<Report> {
+  const ctx: RuleContext = { input, connector: connectorFrom(input, config), probe };
   const lineFor = makeLineLocator(input.raw);
   const results: RuleResult[] = [];
 
@@ -57,6 +57,17 @@ export async function runRules(input: LoadedInput, rules: Rule[], config: Config
     },
     score: computeScore(results),
     gate: computeGate(results),
+    ...(probe
+      ? {
+          probe: {
+            enabled: true as const,
+            target: probe.target,
+            requests: probe.requests.map(({ bodySample: _omit, ...r }) => r),
+            skipped: probe.skipped,
+            ...(probe.error ? { error: probe.error } : {}),
+          },
+        }
+      : {}),
     results,
   };
 }

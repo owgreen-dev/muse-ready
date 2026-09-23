@@ -61,8 +61,9 @@ describe("bad fixtures", () => {
   it("every built-in rule has at least one seeded failure", async () => {
     const { BUILTIN_RULES } = await import("../src/index.js");
     const covered = new Set(cases.map(([, id]) => id));
-    // META002 depends on how the spec is fetched; it is covered by the URL tests.
-    const uncovered = BUILTIN_RULES.map((r) => r.id).filter((id) => !covered.has(id) && id !== "META002");
+    // META002 depends on how the spec is fetched (URL tests); live rules are covered in test/probe.test.ts.
+    const elsewhere = new Set(["META002", "NET002", "LAT001", "ERR002", "PAGE002"]);
+    const uncovered = BUILTIN_RULES.map((r) => r.id).filter((id) => !covered.has(id) && !elsewhere.has(id));
     expect(uncovered).toEqual([]);
   });
 

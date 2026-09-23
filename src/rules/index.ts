@@ -2,6 +2,10 @@ import type { Rule } from "../core/types.js";
 import { AUTH001 } from "./auth001.js";
 import { AUTH002 } from "./auth002.js";
 import { DESC001 } from "./desc001.js";
+import { ERR002 } from "./err002.js";
+import { LAT001 } from "./lat001.js";
+import { NET002 } from "./net002.js";
+import { PAGE002 } from "./page002.js";
 import { ERR001 } from "./err001.js";
 import { IDEM001 } from "./idem001.js";
 import { INJ001 } from "./inj001.js";
@@ -23,7 +27,7 @@ export const BUILTIN_RULES: Rule[] = [
   AUTH001, AUTH002,
   SCOPE001, SCOPE002, SCOPE003, IDEM001,
   INJ001,
-  ERR001, PAGE001,
-  NET001,
+  ERR001, ERR002, PAGE001, PAGE002, LAT001,
+  NET001, NET002,
   META001, META002,
 ];

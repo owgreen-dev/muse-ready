@@ -28,6 +28,11 @@ export function renderTerminal(report: Report, opts: { color?: boolean; verbose?
   const skipped = report.results.length - shown.length;
   if (skipped) lines.push(c.dim(`${skipped} ${skipped === 1 ? "rule does" : "rules do"} not apply to this input (use --verbose to list).`));
 
+  if (report.probe) {
+    const answered = report.probe.requests.filter((r) => r.status !== undefined).length;
+    lines.push(c.dim(`Probe: ${report.probe.requests.length} GET ${report.probe.requests.length === 1 ? "request" : "requests"} to ${report.probe.target || "(no target)"}, ${answered} answered.`));
+  }
+
   lines.push("");
   const gradeColor = score.overall >= 80 ? c.green : score.overall >= 60 ? c.yellow : c.red;
   const sub = [

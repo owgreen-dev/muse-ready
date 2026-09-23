@@ -150,6 +150,33 @@ export function operationWords(o: Operation): string[] {
   return splitWords(text);
 }
 
+/** Schema of the 200 (or 206) response, preferring JSON. */
+export function successSchema(op: any): any {
+  const responses = op?.responses ?? {};
+  const ok = responses["200"] ?? responses["206"];
+  if (!ok) return undefined;
+  if (ok.schema) return ok.schema; // Swagger 2
+  const content = ok.content ?? {};
+  const media = content["application/json"] ?? Object.values<any>(content)[0];
+  return media?.schema;
+}
+
+const LIST_PROPS = ["items", "data", "results", "entries", "records", "list", "values", "nodes", "edges"];
+
+/** True if the schema is an array, or an object wrapping an array under a conventional name. */
+export function returnsList(schema: any): boolean {
+  if (!schema || typeof schema !== "object") return false;
+  if (schema.type === "array" || (Array.isArray(schema.type) && schema.type.includes("array"))) return true;
+  const props = schema.properties ?? {};
+  return LIST_PROPS.some((p) => props[p]?.type === "array");
+}
+
+/** True if the operation (or the document default) requires authentication. */
+export function isSecured(doc: any, op: any): boolean {
+  if (Array.isArray(op?.security)) return op.security.some((req: any) => req && Object.keys(req).length > 0);
+  return Array.isArray(doc?.security) && doc.security.some((req: any) => req && Object.keys(req).length > 0);
+}
+
 export function splitWords(text: string): string[] {
   return text
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")

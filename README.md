@@ -58,6 +58,29 @@ Exit codes: `0` ready, `1` blocking failure or score below `--fail-under`, `2` c
     sarif_file: muse-ready.sarif
 ```
 
+## Live probe (`--probe`)
+
+By default muse-ready only reads your document. With `--probe` it also calls the API's first declared server (or `connector.serverUrl` for MCP) to check what a document can't show:
+
+| Check | Looks at |
+|---|---|
+| NET002 | DNS resolves to public addresses and the TLS certificate verifies |
+| LAT001 | p95 latency (warn above 3 s, fail above 30 s or on timeout) |
+| ERR002 | Secured operations reject unauthenticated calls with 401/403, and no error body leaks a stack trace or credential |
+| PAGE002 | Default list responses stay under 256 KiB (fail above 1 MiB) |
+
+The latency and size thresholds are provisional because Muse's limits are undocumented.
+
+**Exactly what it sends:**
+- Only `GET` requests, at most 8 documented operations plus a few repeats for latency, 13 at the most. It never sends `POST`, `PUT`, `PATCH` or `DELETE`, and a test proves it.
+- It calls only operations whose path and required query parameters have an `example` or `default`, and skips anything with a request body.
+- It skips GETs named like actions, such as `GET /logout`, because they can still have side effects. The report lists everything it skipped and why.
+- It never connects to loopback, private, link-local or cloud-metadata addresses. It checks every DNS answer and every redirect, and pins the connection to the vetted address.
+- It requires HTTPS with a verified certificate. Each request has a 30 s limit and responses are cut off at about 1 MiB.
+- It sends no credentials yet.
+
+`--probe-allow-private` lifts the private-address and HTTPS restrictions so you can test an API on your own machine. Don't use it in CI.
+
 ## Configuration
 
 Put `muse-ready.config.json` (or `.yaml`) in the directory you run from, or pass `--config`. See [`muse-ready.config.example.json`](muse-ready.config.example.json).
@@ -110,8 +133,12 @@ console.log(report.score.overall, report.gate.passed);
 | [IDEM001](#idem001) | Create operations accept an idempotency key | medium | openapi | custom |
 | [INJ001](#inj001) | Descriptions contain no hidden instructions | critical | openapi, mcp | directory, custom |
 | [ERR001](#err001) | Rate limits and auth errors are documented | high | openapi | custom |
+| [ERR002](#err002) | Live: unauthenticated calls are rejected cleanly | high | openapi | custom |
 | [PAGE001](#page001) | List endpoints are paginated | medium | openapi | custom |
+| [PAGE002](#page002) | Live: list responses are a sensible size | medium | openapi | custom |
+| [LAT001](#lat001) | Live: responds quickly | medium | openapi, mcp | custom |
 | [NET001](#net001) | API is on a public HTTPS host | critical | openapi, mcp | directory, custom |
+| [NET002](#net002) | Live: resolves to public addresses and TLS verifies | critical | openapi, mcp | directory, custom |
 | [META001](#meta001) | Directory listing metadata is complete | high | openapi, mcp | directory |
 | [META002](#meta002) | Spec is published at a public URL | high | openapi | directory, custom |
 
@@ -163,13 +190,29 @@ console.log(report.score.overall, report.gate.passed);
 
 **Rate limits and auth errors are documented.** A clear 429 with Retry-After lets the agent back off. A bare 403 'sends it down a debugging path on your dime' (Parallel). Documented error responses tell Muse what each failure means.
 
+### ERR002
+
+**Live: unauthenticated calls are rejected cleanly.** A secured endpoint that answers without credentials is an auth hole, and error bodies with stack traces or secrets leak internals into the agent's context (OWASP LLM02). A clear 401/403 tells Muse to ask the user for a credential. Checked live with --probe.
+
 ### PAGE001
 
 **List endpoints are paginated.** Muse's response-size and timeout limits are undocumented. Unbounded lists risk truncation and burn the user's weekly token meter. Pagination parameters let the agent ask for less.
 
+### PAGE002
+
+**Live: list responses are a sensible size.** Large responses risk truncation and consume the user's weekly token meter. Muse's limit is undocumented; thresholds are provisional: warn above 256 KiB, fail above 1 MiB for a default page. Checked live with --probe.
+
+### LAT001
+
+**Live: responds quickly.** Muse's timeout is undocumented, and slow calls burn the user's weekly token meter while the agent waits. Thresholds are provisional: warn above 3 s p95, fail above 30 s or on timeout. Checked live with --probe.
+
 ### NET001
 
 **API is on a public HTTPS host.** Muse's VM lives in Meta's cloud, so laptop and private-network servers are unreachable, and Sentinel blocks hostnames that resolve to private IPs (Meta, 'How We Built Safety Into Muse'). This check reads declared URLs only; it does not resolve DNS or test TLS yet.
+
+### NET002
+
+**Live: resolves to public addresses and TLS verifies.** Sentinel blocks public hostnames that resolve to private infrastructure and the Muse VM cannot reach private networks (Meta, 'How We Built Safety Into Muse'). An invalid certificate fails before any call succeeds. Checked live with --probe.
 
 ### META001
 
@@ -179,10 +222,9 @@ console.log(report.score.overall, report.gate.passed);
 
 **Spec is published at a public URL.** The clean path for a Muse custom connector is handing it a public, unauthenticated OpenAPI URL (Parallel hands-on test). A spec behind a login wall forces Muse to scrape docs instead.
 
-
 ## Not yet
 
-- Live probing of a running API: TLS, DNS, latency, real 429 and error bodies, response sizes.
+- Authenticated probing (a token for secured endpoints).
 - An optional LLM judge for description quality and injection surfaces in API output.
 - A GitHub Action wrapper and HTML report.
 - Profiles for other agents (generic MCP, ChatGPT apps, Claude connectors).

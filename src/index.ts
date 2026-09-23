@@ -1,5 +1,6 @@
 import { loadConfig, type Config } from "./core/config.js";
-import { runRules } from "./core/engine.js";
+import { connectorFrom, runRules } from "./core/engine.js";
+import { runProbe, type ProbeOptions } from "./probe/run.js";
 import { loadInput } from "./core/load.js";
 import type { InputKind, Report, Rule } from "./core/types.js";
 import { BUILTIN_RULES } from "./rules/index.js";
@@ -7,7 +8,8 @@ import { BUILTIN_RULES } from "./rules/index.js";
 export * from "./core/types.js";
 export { loadInput, LoadError, detectKind } from "./core/load.js";
 export { loadConfig, validateConfig, type Config } from "./core/config.js";
-export { runRules } from "./core/engine.js";
+export { runRules, connectorFrom } from "./core/engine.js";
+export { runProbe, type ProbeOptions } from "./probe/run.js";
 export { computeScore, computeGate, grade, SEVERITY_WEIGHT, GATE_CATEGORIES } from "./core/score.js";
 export { BUILTIN_RULES } from "./rules/index.js";
 export { renderTerminal } from "./report/terminal.js";
@@ -20,11 +22,14 @@ export interface CheckOptions {
   configPath?: string;
   kind?: InputKind;
   rules?: Rule[];
+  /** Run live checks against the declared server. Off by default. */
+  probe?: boolean | ProbeOptions;
 }
 
 /** Load a spec from a path or URL and run every rule against it. */
 export async function check(source: string, opts: CheckOptions = {}): Promise<Report> {
   const config = opts.config ?? (await loadConfig(opts.configPath));
   const input = await loadInput(source, opts.kind);
-  return runRules(input, opts.rules ?? BUILTIN_RULES, config);
+  const probe = opts.probe ? await runProbe(input, connectorFrom(input, config), opts.probe === true ? {} : opts.probe) : undefined;
+  return runRules(input, opts.rules ?? BUILTIN_RULES, config, probe);
 }

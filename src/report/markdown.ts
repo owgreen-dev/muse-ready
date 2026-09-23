@@ -26,6 +26,19 @@ export function renderMarkdown(report: Report): string {
     if (r.status === "not-applicable") continue;
     out.push(`| ${EMOJI[r.status]} | **${r.id}** ${esc(r.title)} | ${esc(r.message)} | ${r.severity} |`);
   }
+  if (report.probe) {
+    out.push("", "## Live probe", "", `Target: \`${esc(report.probe.target || "none")}\`. Only read-only requests were sent.`, "");
+    if (report.probe.requests.length) {
+      out.push("| Request | Status | Time |", "|---|---|---|");
+      for (const r of report.probe.requests) {
+        out.push(`| \`${esc(`${r.method} ${r.path}`)}\` | ${r.status ?? esc(r.error?.code ?? "error")} | ${r.ms !== undefined ? `${r.ms} ms` : "–"} |`);
+      }
+    }
+    if (report.probe.skipped.length) {
+      out.push("", "Not called:", "");
+      for (const s of report.probe.skipped) out.push(`- \`${esc(s.operation)}\`: ${esc(s.reason)}`);
+    }
+  }
   const detailed = report.results.filter((r) => (r.status === "fail" || r.status === "warn") && r.findings.length);
   if (detailed.length) {
     out.push("", "## Findings", "");

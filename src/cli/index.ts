@@ -2,7 +2,8 @@
 import { writeFile } from "node:fs/promises";
 import { Command, InvalidArgumentError, Option } from "commander";
 import { loadConfig } from "../core/config.js";
-import { runRules } from "../core/engine.js";
+import { connectorFrom, runRules } from "../core/engine.js";
+import { runProbe } from "../probe/run.js";
 import { LoadError, loadInput } from "../core/load.js";
 import { RULESET_DATE, TOOL_VERSION } from "../core/version.js";
 import { renderBadge } from "../report/badge.js";
@@ -34,6 +35,8 @@ const program = new Command()
   .addOption(new Option("--kind <kind>", "input type, if auto-detection guesses wrong").choices(["openapi", "mcp"]))
   .option("-c, --config <file>", "config file (default: muse-ready.config.{json,yaml,yml} in the current directory)")
   .option("--fail-under <score>", "exit 1 when the overall score is below this", score)
+  .option("--probe", "also make read-only GET requests to the declared server to check DNS, TLS, latency, auth errors and list sizes")
+  .option("--probe-allow-private", "let --probe reach localhost, private networks and plain HTTP (local testing only)")
   .option("--no-color", "disable colors")
   .option("-v, --verbose", "also list rules that do not apply")
   .option("--list-rules", "print the rule catalog and exit")
@@ -83,7 +86,15 @@ async function main(): Promise<number> {
     throw err;
   }
 
-  const report = await runRules(input, BUILTIN_RULES, config);
+  let probe;
+  if (opts.probe || opts.probeAllowPrivate) {
+    const connector = connectorFrom(input, config);
+    if (opts.format === "terminal") console.error("Probing with read-only GET requests…");
+    probe = await runProbe(input, connector, {
+      request: opts.probeAllowPrivate ? { allowPrivateNetwork: true, allowInsecureHttp: true } : {},
+    });
+  }
+  const report = await runRules(input, BUILTIN_RULES, config, probe);
   const json = () => JSON.stringify(report, null, 2) + "\n";
   const sarif = () => JSON.stringify(renderSarif(report), null, 2) + "\n";
 

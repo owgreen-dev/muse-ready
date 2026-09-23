@@ -65,8 +65,9 @@
         "README documents --probe, exactly what traffic it sends, and the regenerated rule catalog (node scripts/rules-doc.mjs)",
         "bash scripts/verify.sh passes"
       ],
-      "passes": false,
-      "notes": "Depends on T-002."
+      "passes": true,
+      "notes": "Depends on T-002.",
+      "completed_at": "2026-09-23T10:21:49-04:00"
     },
     {
       "id": "T-004",
