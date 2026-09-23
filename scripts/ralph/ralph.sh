@@ -318,10 +318,24 @@ for bin in jq claude gitleaks git node npx; do
   command -v "$bin" > /dev/null || { echo "Error: $bin is required"; exit 1; }
 done
 git rev-parse --verify HEAD > /dev/null 2>&1 || { echo "Error: no commits yet. Commit a baseline first."; exit 1; }
-if [ -n "$(git status --porcelain)" ]; then
+# plans/audit-log.md is written by this script, so it may be dirty between runs.
+if [ -n "$(git status --porcelain | grep -v ' plans/audit-log.md$')" ]; then
   echo "Error: working tree is not clean. Commit or stash first so every change the loop makes is reviewable."
   exit 1
 fi
+echo "Checking Claude can authenticate..."
+AUTH_CHECK=$(RALPH_LOOP=1 claude --print --output-format json --model haiku "Reply with the single word ok." 2>&1 || true)
+if ! echo "$AUTH_CHECK" | jq -e '.is_error == false' > /dev/null 2>&1; then
+  echo "Error: a headless Claude session failed before any work started:"
+  echo "$AUTH_CHECK" | jq -r '.result // .' 2>/dev/null | head -5
+  if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}${ANTHROPIC_API_KEY:-}${ANTHROPIC_AUTH_TOKEN:-}" ]; then
+    echo "An auth variable (CLAUDE_CODE_OAUTH_TOKEN, ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN) is set in this shell and overrides your login."
+    echo "Unset it or fix it, e.g.: env -u CLAUDE_CODE_OAUTH_TOKEN ./scripts/ralph/ralph.sh ..."
+  fi
+  exit 1
+fi
+CONSECUTIVE_SESSION_ERRORS=0
+
 echo "Checking the gate passes on the baseline before starting..."
 if ! $VERIFY_COMMAND > "$RUN_DIR/baseline-verify.txt" 2>&1; then
   echo "Error: $VERIFY_COMMAND fails on the baseline. Fix it first. Output: $RUN_DIR/baseline-verify.txt"
@@ -498,6 +512,24 @@ EOF
     echo "[VERBOSE] Last 10 lines:"
     tail -10 "$OUTPUT_FILE" | sed 's/^/  | /'
   fi
+
+  # A session that errored (auth, API outage, usage limit) did no work: don't count it as progress.
+  if jq -e '.is_error == true' "$JSON_FILE" > /dev/null 2>&1; then
+    CONSECUTIVE_SESSION_ERRORS=$((CONSECUTIVE_SESSION_ERRORS + 1))
+    SESSION_ERR=$(jq -r '"\(.api_error_status // "") \(.result // "")"' "$JSON_FILE" | head -c 300)
+    echo "Claude session failed: $SESSION_ERR"
+    audit_event "$(jq -cn --argjson i "$ITERATION" --arg task "$TASK_ID" --arg err "$SESSION_ERR" --arg at "$(date -Iseconds)" '{event:"session_error", iteration:$i, task:$task, error:$err, at:$at}')"
+    printf -- '- %s run %s iter %s, %s: **session error**: %s\n' "$(date -Iseconds)" "$RUN_ID" "$ITERATION" "$TASK_ID" "$SESSION_ERR" >> "$AUDIT_LOG_MD"
+    if [ "$CONSECUTIVE_SESSION_ERRORS" -ge 2 ]; then
+      echo "Stopping: $CONSECUTIVE_SESSION_ERRORS Claude sessions in a row failed. Fix the cause and restart."
+      update_status "session_errors" "$TASK_ID" "$TASK_TITLE"
+      rm -f "$STATE_FILE"
+      exit 4
+    fi
+    sleep 10
+    continue
+  fi
+  CONSECUTIVE_SESSION_ERRORS=0
 
   # Integrity: the agent must not touch the gate or the task definitions.
   [ "$(protected_hash)" = "$PROTECTED_HASH" ] || halt_tampered "a protected gate file"
