@@ -99,8 +99,9 @@
         "The audit's workflow-hardening check passes for action.yml",
         "bash scripts/verify.sh passes"
       ],
-      "passes": false,
-      "notes": "action/ is not part of the npm package; the audit's package-contents check will confirm that."
+      "passes": true,
+      "notes": "action/ is not part of the npm package; the audit's package-contents check will confirm that.",
+      "completed_at": "2026-09-23T10:26:18-04:00"
     },
     {
       "id": "T-006",

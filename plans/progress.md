@@ -63,3 +63,18 @@ Goal: v0.2.0, live probe mode and a GitHub Action, behind a security gate (see p
 - The credential header's name is passed as a credential header, so it's stripped on cross-origin redirects.
 
 **Tests:** `test/probe.auth.test.ts` covers the env-only source, header selection and origin isolation across the spec host, target and redirect target. The policy test "never writes credentials into any report format" now runs a full probe against an API that echoes the token and checks JSON, terminal, Markdown, SARIF and badge output. Suite: 99 tests.
+
+## 2026-09-23 - T-005 GitHub Action
+
+**Changed:**
+- `action.yml` runs on node24 from `action/dist/index.mjs`, a committed 1.2 MB esbuild bundle of `src/action/index.ts`. `npm run build:action` rebuilds it.
+- Inputs are read straight from `INPUT_*`, with no `@actions/*` dependency. File inputs reject control characters.
+- Outputs go through random-delimiter heredocs. Errors use escaped `::error::` commands.
+- No GitHub API calls and no token needed. `MUSE_READY_TOKEN` passes through for `probe: true`.
+
+**New dev dependency:** esbuild 0.28.2, pinned exact, to bundle the action.
+- vitest 4 no longer pulls it in, so it's genuinely new.
+- Its install script was already allowlisted in `security/policy.json`. npm 11 doesn't run it without approval anyway, and esbuild works from its platform package.
+
+**Tests:** `test/action.test.ts` runs the real bundle with fake `INPUT_*`, `GITHUB_OUTPUT` and `GITHUB_STEP_SUMMARY`. It covers output injection, input validation, fail-under and a blocking failure. It also fails if the bundle is stale. Suite: 106 tests.
+**Learned:** the ESM bundle needs a `createRequire` banner for bundled CommonJS dependencies. `src/core/version.ts` resolves `../../package.json` from `action/dist/`, which works because an action checkout contains the whole repo.

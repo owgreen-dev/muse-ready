@@ -237,7 +237,7 @@ console.log(report.score.overall, report.gate.passed);
 ## Not yet
 
 - An optional LLM judge for description quality and injection surfaces in API output.
-- A GitHub Action wrapper and HTML report.
+- An HTML report.
 - Profiles for other agents (generic MCP, ChatGPT apps, Claude connectors).
 
 ## Development

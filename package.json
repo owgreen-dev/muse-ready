@@ -40,7 +40,8 @@
     "prepublishOnly": "npm run build && npm test",
     "docs:rules": "npm run build && node scripts/rules-doc.mjs",
     "verify": "bash scripts/verify.sh",
-    "audit:security": "node scripts/security-audit.mjs"
+    "audit:security": "node scripts/security-audit.mjs",
+    "build:action": "node scripts/build-action.mjs"
   },
   "dependencies": {
     "@readme/openapi-parser": "^9.0.0",
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
+    "esbuild": "0.28.2",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"
   }

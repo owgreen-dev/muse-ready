@@ -1,0 +1,39 @@
+name: muse-ready
+description: Check whether an OpenAPI spec or MCP tool list is ready to become a Meta Muse connector.
+author: owgreen-dev
+branding:
+  icon: check-circle
+  color: blue
+inputs:
+  spec:
+    description: Path or URL of an OpenAPI document (JSON/YAML) or an MCP tools/list result.
+    required: true
+  config:
+    description: Path to a muse-ready config file. Defaults to muse-ready.config.{json,yaml,yml} in the workspace.
+    required: false
+  fail-under:
+    description: Fail the step when the overall score is below this (0-100).
+    required: false
+  probe:
+    description: Also make read-only GET requests to the declared server. Set MUSE_READY_TOKEN in env to probe secured endpoints.
+    required: false
+    default: "false"
+  sarif-file:
+    description: Where to write the SARIF report, for github/codeql-action/upload-sarif.
+    required: false
+    default: muse-ready.sarif
+  badge-file:
+    description: Optional path for shields.io endpoint badge JSON.
+    required: false
+outputs:
+  score:
+    description: Overall readiness score, 0-100.
+  grade:
+    description: Letter grade, A+ to F.
+  passed:
+    description: '"true" when there are no blocking failures and the score meets fail-under.'
+  sarif-file:
+    description: Path of the SARIF report.
+runs:
+  using: node24
+  main: action/dist/index.mjs
