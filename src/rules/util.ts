@@ -49,6 +49,17 @@ export function aggregate(
   return { status: "pass", message: messages.pass };
 }
 
+/** "1 operation", "3 operations". */
 export function plural(n: number, word: string, pluralWord = `${word}s`): string {
   return `${n} ${n === 1 ? word : pluralWord}`;
+}
+
+/** "The 1 operation" for one, "All 3 operations" for more. */
+export function all(n: number, word: string, pluralWord = `${word}s`): string {
+  return n === 1 ? `The 1 ${word}` : `All ${n} ${pluralWord}`;
+}
+
+/** Picks the verb form that agrees with n: agree(1, "is", "are") is "is". */
+export function agree(n: number, one: string, many: string): string {
+  return n === 1 ? one : many;
 }

@@ -26,7 +26,7 @@ export function renderTerminal(report: Report, opts: { color?: boolean; verbose?
     for (const f of findingsFor(r)) lines.push(c.dim(`  ${" ".repeat(idWidth)}    · ${f}`));
   }
   const skipped = report.results.length - shown.length;
-  if (skipped) lines.push(c.dim(`${skipped} rule(s) not applicable to this input (use --verbose to list).`));
+  if (skipped) lines.push(c.dim(`${skipped} ${skipped === 1 ? "rule does" : "rules do"} not apply to this input (use --verbose to list).`));
 
   lines.push("");
   const gradeColor = score.overall >= 80 ? c.green : score.overall >= 60 ? c.yellow : c.red;

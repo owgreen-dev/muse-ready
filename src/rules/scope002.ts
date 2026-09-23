@@ -1,6 +1,6 @@
 import type { Finding, Rule } from "../core/types.js";
 import { SAFE_METHODS, operations } from "../core/openapi.js";
-import { DESTRUCTIVE_VERBS, READ_VERBS, aggregate, firstWord } from "./util.js";
+import { DESTRUCTIVE_VERBS, READ_VERBS, aggregate, agree, all, firstWord, plural } from "./util.js";
 
 export const SCOPE002: Rule = {
   id: "SCOPE002",
@@ -51,9 +51,9 @@ export const SCOPE002: Rule = {
 
     if (input.kind === "openapi" && writes === 0) return { status: "not-applicable", message: "No write operations found." };
     return aggregate(fails, warns, {
-      pass: input.kind === "openapi" ? `${writes} write operation(s), all named as writes.` : "All tools are annotated consistently.",
-      fail: `${fails.length} write(s) are disguised as reads or mis-annotated.`,
-      warn: `${warns.length} write-marking gap(s).`,
+      pass: input.kind === "openapi" ? `${all(writes, "write operation")} ${agree(writes, "is", "are")} named as a write.` : "All tools are annotated consistently.",
+      fail: `${plural(fails.length, "write")} ${agree(fails.length, "is", "are")} disguised as a read or mis-annotated.`,
+      warn: `${plural(warns.length, "write-marking gap")}.`,
     });
   },
 };

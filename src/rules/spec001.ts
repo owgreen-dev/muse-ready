@@ -1,4 +1,5 @@
 import type { Rule } from "../core/types.js";
+import { plural } from "./util.js";
 
 export const SPEC001: Rule = {
   id: "SPEC001",
@@ -16,12 +17,12 @@ export const SPEC001: Rule = {
       const shown = v.errors.slice(0, 10).map((message) => ({ message }));
       const more = v.errors.length - shown.length;
       if (more > 0) shown.push({ message: `…and ${more} more` });
-      return { status: "fail", message: `Schema validation failed with ${v.errors.length} error(s).`, findings: shown };
+      return { status: "fail", message: `Schema validation failed with ${plural(v.errors.length, "error")}.`, findings: shown };
     }
     if (v.warnings.length) {
       return {
         status: "warn",
-        message: `Valid, with ${v.warnings.length} warning(s).`,
+        message: `Valid, with ${plural(v.warnings.length, "warning")}.`,
         findings: v.warnings.slice(0, 10).map((message) => ({ message })),
       };
     }

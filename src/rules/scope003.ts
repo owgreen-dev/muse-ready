@@ -1,6 +1,6 @@
 import type { Finding, Rule } from "../core/types.js";
 import { SAFE_METHODS, inputNames, operations } from "../core/openapi.js";
-import { CONFIRM_PARAM, HIGH_IMPACT_VERBS, aggregate, firstWord } from "./util.js";
+import { CONFIRM_PARAM, HIGH_IMPACT_VERBS, aggregate, agree, all, firstWord, plural } from "./util.js";
 
 export const SCOPE003: Rule = {
   id: "SCOPE003",
@@ -41,9 +41,9 @@ export const SCOPE003: Rule = {
 
     if (risky === 0) return { status: "not-applicable", message: "No high-impact actions found." };
     return aggregate([], warns, {
-      pass: `All ${risky} high-impact action(s) take a confirm or dry-run parameter.`,
+      pass: `${all(risky, "high-impact action")} ${agree(risky, "takes", "take")} a confirm or dry-run parameter.`,
       fail: "",
-      warn: `${warns.length} of ${risky} high-impact action(s) commit immediately.`,
+      warn: `${warns.length} of ${plural(risky, "high-impact action")} ${agree(warns.length, "commits", "commit")} immediately.`,
     });
   },
 };

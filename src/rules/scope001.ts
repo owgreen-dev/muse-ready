@@ -1,6 +1,6 @@
 import type { Finding, Rule } from "../core/types.js";
 import { SAFE_METHODS, hasRequestBody, operations } from "../core/openapi.js";
-import { WRITE_VERBS, aggregate, firstWord } from "./util.js";
+import { WRITE_VERBS, aggregate, agree, firstWord, plural } from "./util.js";
 
 export const SCOPE001: Rule = {
   id: "SCOPE001",
@@ -44,8 +44,8 @@ export const SCOPE001: Rule = {
 
     if (reads === 0) return { status: "not-applicable", message: "No read operations found." };
     return aggregate(fails, [], {
-      pass: `${reads} read operation(s), none look like writes.`,
-      fail: `${fails.length} read operation(s) look like they change state.`,
+      pass: `${plural(reads, "read operation")}, none ${agree(reads, "looks", "look")} like a write.`,
+      fail: `${plural(fails.length, "problem")} with read operations that look like they change state.`,
       warn: "",
     });
   },

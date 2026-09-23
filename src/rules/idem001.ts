@@ -1,6 +1,6 @@
 import type { Finding, Rule } from "../core/types.js";
 import { operations } from "../core/openapi.js";
-import { aggregate } from "./util.js";
+import { aggregate, agree, all, plural } from "./util.js";
 
 const KEY = /^idempotency[-_]?key$/i;
 
@@ -25,9 +25,9 @@ export const IDEM001: Rule = {
     }
     if (posts === 0) return { status: "not-applicable", message: "No POST operations." };
     return aggregate([], warns, {
-      pass: `All ${posts} POST operation(s) accept an Idempotency-Key.`,
+      pass: `${all(posts, "POST operation")} ${agree(posts, "accepts", "accept")} an Idempotency-Key.`,
       fail: "",
-      warn: `${warns.length} of ${posts} POST operation(s) are unsafe to retry.`,
+      warn: `${warns.length} of ${plural(posts, "POST operation")} ${agree(warns.length, "is", "are")} unsafe to retry.`,
     });
   },
 };

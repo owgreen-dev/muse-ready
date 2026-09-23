@@ -1,6 +1,6 @@
 import type { Finding, Rule } from "../core/types.js";
 import { operations } from "../core/openapi.js";
-import { aggregate } from "./util.js";
+import { aggregate, agree, all, plural } from "./util.js";
 
 const PAGING = /^(limit|per_?page|page_?size|max_?results|max|top|first|count|size|cursor|page|offset|skip|page_?token|next_?token|next|after|before|starting_after|ending_before|since_id|continuation_?token)$/i;
 const LIST_PROPS = ["items", "data", "results", "entries", "records", "list", "values", "nodes", "edges"];
@@ -44,9 +44,9 @@ export const PAGE001: Rule = {
     }
     if (lists === 0) return { status: "not-applicable", message: "No list endpoints detected." };
     return aggregate([], warns, {
-      pass: `All ${lists} list endpoint(s) are paginated.`,
+      pass: `${all(lists, "list endpoint")} ${agree(lists, "is", "are")} paginated.`,
       fail: "",
-      warn: `${warns.length} of ${lists} list endpoint(s) return everything at once.`,
+      warn: `${warns.length} of ${plural(lists, "list endpoint")} ${agree(warns.length, "returns", "return")} everything at once.`,
     });
   },
 };

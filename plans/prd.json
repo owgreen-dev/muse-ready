@@ -27,8 +27,9 @@
         "Existing tests updated rather than deleted; total test count does not drop",
         "bash scripts/verify.sh passes"
       ],
-      "passes": false,
-      "notes": "Warm-up task. Seen on the Petstore run: 'All 1 high-impact action(s)' and '1 required listing field(s) missing' while listing two items."
+      "passes": true,
+      "notes": "Warm-up task. Seen on the Petstore run: 'All 1 high-impact action(s)' and '1 required listing field(s) missing' while listing two items.",
+      "completed_at": "2026-09-23T10:13:43-04:00"
     },
     {
       "id": "T-002",
@@ -116,7 +117,9 @@
       "id": "T-007",
       "title": "Opt-in PR comment from the Action",
       "priority": "low",
-      "acceptanceCriteria": ["Human decision required first"],
+      "acceptanceCriteria": [
+        "Human decision required first"
+      ],
       "passes": false,
       "skip": true,
       "skipReason": "Needs a human decision: posting comments requires pull-requests: write and GitHub API calls from the action, which widens the token's permissions and the network surface.",
@@ -126,7 +129,9 @@
       "id": "T-008",
       "title": "Create the GitHub repo, enable code scanning, publish to npm and the Marketplace",
       "priority": "low",
-      "acceptanceCriteria": ["Human task"],
+      "acceptanceCriteria": [
+        "Human task"
+      ],
       "passes": false,
       "skip": true,
       "skipReason": "Requires account access and outward-facing publishing. The loop is blocked from gh, git push and npm publish on purpose.",
@@ -136,7 +141,9 @@
       "id": "T-009",
       "title": "Run the Muse custom-connector field experiment and feed results into the ruleset",
       "priority": "low",
-      "acceptanceCriteria": ["Human task"],
+      "acceptanceCriteria": [
+        "Human task"
+      ],
       "passes": false,
       "skip": true,
       "skipReason": "Needs a US Muse account and a deployed test API (base.md section B).",
@@ -146,7 +153,9 @@
       "id": "T-010",
       "title": "Re-check the ruleset against Meta Connect announcements (Sept 23-24, 2026)",
       "priority": "low",
-      "acceptanceCriteria": ["Human review"],
+      "acceptanceCriteria": [
+        "Human review"
+      ],
       "passes": false,
       "skip": true,
       "skipReason": "Needs a human to judge which announcements change which rules; bump RULESET_DATE afterwards.",

@@ -1,6 +1,6 @@
 import type { Finding, Rule } from "../core/types.js";
 import { checkPublicUrl } from "./net001.js";
-import { aggregate } from "./util.js";
+import { aggregate, plural } from "./util.js";
 
 const MIN_DESCRIPTION = 40;
 
@@ -47,10 +47,11 @@ export const META001: Rule = {
       warns.push({ message: "No support contact (info.contact.email or info.contact.url)", pointer: ["info"] });
     }
 
+    const recommended = warns.length ? `, ${warns.length} recommended` : "";
     return aggregate(fails, warns, {
       pass: "Name, description, icon, privacy policy and terms are all present.",
-      fail: `${fails.length} required listing field(s) missing.`,
-      warn: `${warns.length} listing field(s) need attention.`,
+      fail: `${plural(fails.length, "required field")} missing${recommended}.`,
+      warn: `No required fields missing, ${warns.length} recommended.`,
     });
   },
 };

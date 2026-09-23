@@ -1,6 +1,6 @@
 import type { Finding, Rule } from "../core/types.js";
 import { operations } from "../core/openapi.js";
-import { aggregate } from "./util.js";
+import { aggregate, agree, all, plural } from "./util.js";
 
 const MIN_CHARS = 20;
 
@@ -55,9 +55,9 @@ export const DESC001: Rule = {
     }
 
     return aggregate(fails, warns, {
-      pass: `All ${count} ${input.kind === "openapi" ? "operations" : "tools"} are described.`,
-      fail: `${fails.length} of ${count} undescribed.`,
-      warn: `${warns.length} description gap(s) across ${count}.`,
+      pass: `${all(count, input.kind === "openapi" ? "operation" : "tool")} ${agree(count, "is", "are")} described.`,
+      fail: `${fails.length} of ${count} ${agree(count, input.kind === "openapi" ? "operation" : "tool", input.kind === "openapi" ? "operations" : "tools")} undescribed.`,
+      warn: `${plural(warns.length, "description gap")} across ${plural(count, input.kind === "openapi" ? "operation" : "tool")}.`,
     });
   },
 };

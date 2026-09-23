@@ -20,3 +20,9 @@ Goal: v0.2.0, live probe mode and a GitHub Action, behind a security gate (see p
 - `.claude/hooks/guard.mjs`: blocks gate edits, pushes, publishes and credential reads while the loop runs.
 
 ---
+
+## 2026-09-23 - T-001 report wording (done interactively, not by the loop)
+
+**Changed:** `src/rules/util.ts` gains `all()` ("The 1 X" / "All N Xs") and `agree()` for verb agreement. Every rule message and the terminal footer now use them. META001 reports "N required fields missing, M recommended".
+**Tests:** `test/wording.test.ts` renders every fixture in terminal, Markdown and SARIF and rejects "(s)" and "All 1 ". Suite: 71 tests.
+**Learned:** the loop never ran any task. `~/.zshrc` exports `CLAUDE_CODE_OAUTH_TOKEN` as the whole keychain credentials JSON, so every headless session got 401. Tasks are being done in an interactive session instead.

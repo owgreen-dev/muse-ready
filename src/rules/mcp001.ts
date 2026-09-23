@@ -1,5 +1,5 @@
 import type { Finding, Rule } from "../core/types.js";
-import { aggregate } from "./util.js";
+import { aggregate, agree, all, plural } from "./util.js";
 
 const NAME = /^[A-Za-z0-9_.-]{1,128}$/;
 
@@ -43,8 +43,8 @@ export const MCP001: Rule = {
       }
     });
     return aggregate(fails, [], {
-      pass: `${tools.length} tool(s), all well-formed.`,
-      fail: `${fails.length} problem(s) across ${tools.length} tool(s).`,
+      pass: `${all(tools.length, "tool")} ${agree(tools.length, "is", "are")} well-formed.`,
+      fail: `${plural(fails.length, "problem")} across ${plural(tools.length, "tool")}.`,
       warn: "",
     });
   },

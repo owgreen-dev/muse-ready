@@ -73,7 +73,7 @@ export const NET001: Rule = {
       if (problem) (problem.level === "fail" ? fails : warns).push({ message: problem.message, pointer: s.pointer });
     }
     return aggregate(fails, warns, {
-      pass: `${servers.length} server URL(s), all public HTTPS.`,
+      pass: servers.length === 1 ? "The server URL is public HTTPS." : `All ${servers.length} server URLs are public HTTPS.`,
       fail: "Muse will not be able to reach some declared servers.",
       warn: "Server URLs need attention.",
     });

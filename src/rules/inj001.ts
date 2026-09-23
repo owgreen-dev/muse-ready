@@ -1,6 +1,6 @@
 import type { Finding, Pointer, Rule } from "../core/types.js";
 import { textFields } from "../core/openapi.js";
-import { aggregate, preview } from "./util.js";
+import { aggregate, plural, preview } from "./util.js";
 
 // Zero-width characters, bidi controls, BOM and Unicode tag characters: invisible to a human reviewer, read by the model.
 const HIDDEN = /[​-‏‪-‮⁠-⁤⁦-⁩﻿]|[\u{E0000}-\u{E007F}]/u;
@@ -59,9 +59,9 @@ export const INJ001: Rule = {
       });
     }
     return aggregate(fails, warns, {
-      pass: `Scanned ${fields.length} description(s); nothing suspicious.`,
-      fail: `${fails.length} likely injection payload(s) found.`,
-      warn: `${warns.length} suspicious phrase(s) to review.`,
+      pass: `Scanned ${plural(fields.length, "description")}; nothing suspicious.`,
+      fail: `${plural(fails.length, "likely injection payload")} found.`,
+      warn: `${plural(warns.length, "suspicious phrase")} to review.`,
     });
   },
 };
