@@ -46,8 +46,9 @@
         "No new production dependency",
         "bash scripts/verify.sh passes"
       ],
-      "passes": false,
-      "notes": "The audit starts enforcing the probe security tests the moment src/probe/ exists, so create the test file in the same commit. 'never writes credentials into any report format' can assert on safeRequest results and errors for now; T-004 extends it to reports."
+      "passes": true,
+      "notes": "The audit starts enforcing the probe security tests the moment src/probe/ exists, so create the test file in the same commit. 'never writes credentials into any report format' can assert on safeRequest results and errors for now; T-004 extends it to reports.",
+      "completed_at": "2026-09-23T10:16:15-04:00"
     },
     {
       "id": "T-003",
