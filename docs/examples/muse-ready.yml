@@ -1,0 +1,38 @@
+# Copy to .github/workflows/muse-ready.yml in your API's repository.
+# Every action is pinned to a full commit SHA; the comment says which release it is.
+name: muse-ready
+
+on:
+  pull_request:
+    paths: ["openapi.yaml", "muse-ready.config.json"]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # only for uploading SARIF to code scanning
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - id: muse
+        uses: owgreen-dev/muse-ready@4aaaa82aee43c9653c3ca53ad78534abd30e4b8b # v0.2.0 (pre-release: re-pin to the release commit)
+        with:
+          spec: openapi.yaml
+          fail-under: "80"
+          # probe: "true"   # also make read-only GET requests to your declared server
+        # env:
+        #   MUSE_READY_TOKEN: ${{ secrets.MUSE_READY_TOKEN }}   # only if probing secured endpoints
+
+      - uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        if: always()
+        with:
+          sarif_file: muse-ready.sarif
+          category: muse-ready

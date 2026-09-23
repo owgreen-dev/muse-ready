@@ -78,3 +78,17 @@ Goal: v0.2.0, live probe mode and a GitHub Action, behind a security gate (see p
 
 **Tests:** `test/action.test.ts` runs the real bundle with fake `INPUT_*`, `GITHUB_OUTPUT` and `GITHUB_STEP_SUMMARY`. It covers output injection, input validation, fail-under and a blocking failure. It also fails if the bundle is stale. Suite: 106 tests.
 **Learned:** the ESM bundle needs a `createRequire` banner for bundled CommonJS dependencies. `src/core/version.ts` resolves `../../package.json` from `action/dist/`, which works because an action checkout contains the whole repo.
+
+## 2026-09-23 - T-006 example workflow and Action docs
+
+**Changed:** `docs/examples/muse-ready.yml`:
+- Triggers on `pull_request`. Top-level permissions are `contents: read`, and `security-events: write` is granted only on the SARIF job.
+- Every action is pinned by SHA with a version comment, and checkout uses `persist-credentials: false`.
+- The action is pinned to the T-005 commit as a placeholder: re-pin it to the release commit once the repo exists (T-008).
+
+The README gains a GitHub Action section explaining why each permission is needed.
+**Tests:** `test/example-workflow.test.ts` checks the trigger, permissions, pinning, credential persistence and that inputs match action.yml. Suite: 111 tests.
+
+## Status after T-006
+
+All six automatable tasks pass. T-007 to T-010 are human tasks (see prd.json). Suggested policy change for a human: raise `minimumTestCount` in `security/policy.json` from 52 to 111 so the suite can't quietly shrink.

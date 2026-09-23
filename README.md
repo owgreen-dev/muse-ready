@@ -48,14 +48,40 @@ Checks return `pass`, `warn` (half credit) or `fail`, weighted by severity: crit
 
 Exit codes: `0` ready, `1` blocking failure or score below `--fail-under`, `2` could not load the input.
 
-### In CI
+## GitHub Action
+
+```yaml
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: owgreen-dev/muse-ready@<commit-sha> # v0.2.0
+        with:
+          spec: openapi.yaml
+          fail-under: "80"
+      - uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        if: always()
+        with:
+          sarif_file: muse-ready.sarif
+```
+
+The full example is in [`docs/examples/muse-ready.yml`](docs/examples/muse-ready.yml). The step writes a readiness table to the job summary, sets the `score`, `grade` and `passed` outputs, and fails when there's a blocking problem or the score is under `fail-under`.
+
+**Permissions.** The action itself needs none. It makes no GitHub API calls and never reads `GITHUB_TOKEN`. `contents: read` is for checking out your spec. `security-events: write` is only there so `upload-sarif` can show findings inline on pull requests, and it's granted only to that job. Pin every action to a commit SHA, as shown, so a moved tag can't change what runs. `persist-credentials: false` keeps the checkout token out of later steps. To probe secured endpoints, set `probe: "true"` and pass `MUSE_READY_TOKEN` from a repository secret through `env`.
+
+### Without the Action
 
 ```yaml
 - run: npx muse-ready openapi.yaml --sarif muse-ready.sarif --fail-under 80
-- uses: github/codeql-action/upload-sarif@v3
-  if: always()
-  with:
-    sarif_file: muse-ready.sarif
 ```
 
 ## Live probe (`--probe`)
