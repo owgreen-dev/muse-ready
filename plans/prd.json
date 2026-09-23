@@ -1,0 +1,156 @@
+{
+  "repo": "owgreen-dev/muse-ready",
+  "goal": "v0.2.0: live probe mode and a GitHub Action, built behind a security gate that every iteration must pass.",
+  "branchName": "ralph/v0.2-probe-action",
+  "gate": "bash scripts/verify.sh (typecheck, tests, build, 11-check security audit). Run by scripts/ralph/ralph.sh itself; cannot be changed from this file.",
+  "acceptanceCriteria": [
+    "bash scripts/verify.sh exits 0 after every iteration, including all 11 security audit checks",
+    "No file under the protected paths (scripts/verify.sh, scripts/security-audit.mjs, security/, scripts/ralph/, .claude/, .github/workflows/) changes; ralph.sh halts the run if one does",
+    "Every automatable task below has passes: true, each landed as its own commit",
+    "No new production dependency; any new dev dependency is justified in plans/progress.md",
+    "plans/progress.md records what each task changed and learned"
+  ],
+  "securityRequirements": [
+    "Network access only from src/core/load.ts and src/probe/ (enforced by the audit)",
+    "The probe sends only GET, HEAD and OPTIONS, never to private or loopback addresses by default, and never forwards credentials to a host other than the declared server",
+    "Secrets come only from environment variables and never appear in any output, report, log or error",
+    "Workflows and action.yml pin every action to a commit SHA, declare least-privilege permissions, and never interpolate untrusted ${{ }} values into shell commands"
+  ],
+  "features": [
+    {
+      "id": "T-001",
+      "title": "Polish report wording: singular counts and required-vs-recommended metadata",
+      "priority": "high",
+      "acceptanceCriteria": [
+        "No rule message or finding produced for any fixture in fixtures/ contains the text \"(s)\" or \"All 1 \"; a test renders every fixture and asserts this",
+        "META001's message states required and recommended gaps separately, e.g. \"1 required field missing, 1 recommended\", and a test covers it",
+        "Existing tests updated rather than deleted; total test count does not drop",
+        "bash scripts/verify.sh passes"
+      ],
+      "passes": false,
+      "notes": "Warm-up task. Seen on the Petstore run: 'All 1 high-impact action(s)' and '1 required listing field(s) missing' while listing two items."
+    },
+    {
+      "id": "T-002",
+      "title": "Safe HTTP client for probing (src/probe/http.ts)",
+      "priority": "high",
+      "acceptanceCriteria": [
+        "safeRequest(url, options) is built on node:http/node:https with a custom DNS lookup that rejects loopback, private, link-local, CGNAT, multicast, unspecified and IPv4-mapped IPv6 private addresses AFTER resolution, so DNS rebinding cannot reach internal hosts",
+        "Methods other than GET, HEAD and OPTIONS throw before any socket opens",
+        "Redirects are followed manually, at most 3, re-validating scheme and resolved address on every hop; any credential header is dropped when the origin changes",
+        "Default total timeout 10s and default body cap 1 MiB; oversize bodies are aborted and flagged truncated",
+        "HTTPS only by default; plain HTTP and private networks need explicit options (allowInsecureHttp, allowPrivateNetwork) that default to false",
+        "Sends User-Agent muse-ready/<version>",
+        "test/probe.security.test.ts exists and contains every test title listed under probeSecurityTests in security/policy.json, verbatim, each exercising real behaviour against local test servers",
+        "No new production dependency",
+        "bash scripts/verify.sh passes"
+      ],
+      "passes": false,
+      "notes": "The audit starts enforcing the probe security tests the moment src/probe/ exists, so create the test file in the same commit. 'never writes credentials into any report format' can assert on safeRequest results and errors for now; T-004 extends it to reports."
+    },
+    {
+      "id": "T-003",
+      "title": "--probe mode with live checks NET002, LAT001, ERR002, PAGE002",
+      "priority": "high",
+      "acceptanceCriteria": [
+        "CLI flag --probe is off by default; without it the tool opens no connection except fetching a URL spec (a test asserts the probe module is never called)",
+        "Probe target is the first declared OpenAPI server, or connector.serverUrl for MCP input",
+        "The probe only calls GET/HEAD/OPTIONS operations that need no required parameters (or whose required parameters have a default or example); a test runs a full probe against a local server exposing write operations and asserts it received zero POST/PUT/PATCH/DELETE requests",
+        "Each new rule lives in its own file under src/rules/ with a rationale and is marked provisional where Muse's limits are undocumented: NET002 (DNS resolves to public addresses and TLS verifies), LAT001 (p95 latency across up to 5 GETs; warn above 3s, fail above 30s or timeout), ERR002 (unauthenticated call to a secured operation returns 401/403 and the body contains no stack trace or secret-looking strings), PAGE002 (sampled list response under 1 MiB; warn above 256 KiB)",
+        "Each new rule has a passing and a failing case in tests using local servers",
+        "Probe rules return not-applicable when --probe is off",
+        "The JSON report gains probe: { enabled, target, requests: [{ method, path, status, ms }] } and the terminal, Markdown and SARIF outputs show probe findings",
+        "README documents --probe, exactly what traffic it sends, and the regenerated rule catalog (node scripts/rules-doc.mjs)",
+        "bash scripts/verify.sh passes"
+      ],
+      "passes": false,
+      "notes": "Depends on T-002."
+    },
+    {
+      "id": "T-004",
+      "title": "Authenticated probing via MUSE_READY_TOKEN",
+      "priority": "medium",
+      "acceptanceCriteria": [
+        "The token is read only from the MUSE_READY_TOKEN environment variable, never from a CLI argument or config file",
+        "Header defaults to 'Authorization: Bearer <token>'; config probe.authHeader can switch to an API-key header name",
+        "The token is sent only to the exact origin of the probe target, never to the spec host if different and never across a redirect to another origin (tests)",
+        "A test runs a full probe with a known token and asserts the token string appears in none of: terminal output, JSON, Markdown, SARIF, badge, thrown errors",
+        "bash scripts/verify.sh passes"
+      ],
+      "passes": false,
+      "notes": "Depends on T-003."
+    },
+    {
+      "id": "T-005",
+      "title": "JavaScript GitHub Action (action.yml at repo root)",
+      "priority": "high",
+      "acceptanceCriteria": [
+        "action.yml uses runs.using: node24 with main pointing at a committed, bundled action/dist/index.js",
+        "Inputs: spec (required), config, fail-under, probe (default false), sarif-file (default muse-ready.sarif), badge-file. Outputs: score, grade, passed, sarif-file",
+        "Writes the Markdown report to $GITHUB_STEP_SUMMARY and the SARIF file to disk; sets outputs via $GITHUB_OUTPUT using a random heredoc delimiter so values cannot inject extra outputs",
+        "Makes no GitHub API calls and needs no token; the action's source lives under src/action/ and passes the audit's network invariant",
+        "No new production dependency; a bundler may be added as a dev dependency only if its install script is already allowed by security/policy.json (esbuild is)",
+        "A test runs the bundled entry with fake INPUT_* and GITHUB_* environment variables and temp files, and asserts outputs, step summary and SARIF",
+        "A test fails if action/dist/index.js is stale relative to the source",
+        "The audit's workflow-hardening check passes for action.yml",
+        "bash scripts/verify.sh passes"
+      ],
+      "passes": false,
+      "notes": "action/ is not part of the npm package; the audit's package-contents check will confirm that."
+    },
+    {
+      "id": "T-006",
+      "title": "Example workflow and Action docs",
+      "priority": "medium",
+      "acceptanceCriteria": [
+        "docs/examples/muse-ready.yml: triggers on pull_request (never pull_request_target), top-level permissions contents: read plus security-events: write only on the job that uploads SARIF, every uses: pinned to a 40-character SHA with a version comment, persist-credentials: false on checkout",
+        "Uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 (v7.0.1) and github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd (v4.38.1)",
+        "A test parses the example with the yaml package and asserts the pinning, permissions and trigger rules above",
+        "README gains a GitHub Action section with the snippet and a one-paragraph explanation of the permissions it needs and why",
+        "bash scripts/verify.sh passes"
+      ],
+      "passes": false,
+      "notes": "Depends on T-005. Do not add files under .github/workflows/ (protected)."
+    },
+    {
+      "id": "T-007",
+      "title": "Opt-in PR comment from the Action",
+      "priority": "low",
+      "acceptanceCriteria": ["Human decision required first"],
+      "passes": false,
+      "skip": true,
+      "skipReason": "Needs a human decision: posting comments requires pull-requests: write and GitHub API calls from the action, which widens the token's permissions and the network surface.",
+      "notes": ""
+    },
+    {
+      "id": "T-008",
+      "title": "Create the GitHub repo, enable code scanning, publish to npm and the Marketplace",
+      "priority": "low",
+      "acceptanceCriteria": ["Human task"],
+      "passes": false,
+      "skip": true,
+      "skipReason": "Requires account access and outward-facing publishing. The loop is blocked from gh, git push and npm publish on purpose.",
+      "notes": "Also replace the placeholder repo URL in src/report/sarif.ts once the repo exists."
+    },
+    {
+      "id": "T-009",
+      "title": "Run the Muse custom-connector field experiment and feed results into the ruleset",
+      "priority": "low",
+      "acceptanceCriteria": ["Human task"],
+      "passes": false,
+      "skip": true,
+      "skipReason": "Needs a US Muse account and a deployed test API (base.md section B).",
+      "notes": ""
+    },
+    {
+      "id": "T-010",
+      "title": "Re-check the ruleset against Meta Connect announcements (Sept 23-24, 2026)",
+      "priority": "low",
+      "acceptanceCriteria": ["Human review"],
+      "passes": false,
+      "skip": true,
+      "skipReason": "Needs a human to judge which announcements change which rules; bump RULESET_DATE afterwards.",
+      "notes": ""
+    }
+  ]
+}

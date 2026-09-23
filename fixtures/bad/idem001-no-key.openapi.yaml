@@ -1,0 +1,10 @@
+# IDEM001: a POST with no Idempotency-Key.
+openapi: 3.1.0
+info: { title: Orders API, version: "1" }
+servers: [{ url: "https://api.example.com" }]
+paths:
+  /orders:
+    post:
+      operationId: createOrder
+      summary: Create an order for the given cart
+      responses: { "201": { description: created } }

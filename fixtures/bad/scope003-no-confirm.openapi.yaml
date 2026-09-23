@@ -1,0 +1,16 @@
+# SCOPE003: payment and deletion commit on the first call.
+openapi: 3.1.0
+info: { title: Money API, version: "1" }
+servers: [{ url: "https://api.example.com" }]
+paths:
+  /payments:
+    post:
+      operationId: sendPayment
+      summary: Send money to a recipient
+      responses: { "201": { description: sent } }
+  /accounts/{id}:
+    delete:
+      operationId: deleteAccount
+      summary: Delete the account and all its data
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "204": { description: gone } }

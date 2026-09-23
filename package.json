@@ -1,0 +1,56 @@
+{
+  "name": "muse-ready",
+  "version": "0.1.0",
+  "description": "Readiness checker for Meta Muse connectors: score an OpenAPI spec or MCP tool list before you submit it.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "bin": {
+    "muse-ready": "dist/cli/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "muse",
+    "meta",
+    "connector",
+    "openapi",
+    "mcp",
+    "lint",
+    "agent",
+    "readiness"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test",
+    "docs:rules": "npm run build && node scripts/rules-doc.mjs",
+    "verify": "bash scripts/verify.sh",
+    "audit:security": "node scripts/security-audit.mjs"
+  },
+  "dependencies": {
+    "@readme/openapi-parser": "^9.0.0",
+    "commander": "^15.0.0",
+    "picocolors": "^1.1.1",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

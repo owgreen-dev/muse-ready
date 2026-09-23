@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "tools": [
+      { "name": "search notes", "description": "Search notes by keyword and return matches.", "inputSchema": { "type": "object" } },
+      { "name": "get_note", "description": "Fetch one note by its ID and return the body.", "inputSchema": { "type": "object" } },
+      { "name": "get_note", "description": "Fetch one note again under a duplicate name.", "inputSchema": { "type": "object" } },
+      { "name": "list_notes", "description": "List every note title in the notebook." }
+    ]
+  }
+}

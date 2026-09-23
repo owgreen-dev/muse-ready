@@ -1,0 +1,13 @@
+# PAGE001: a list endpoint with no paging parameters.
+openapi: 3.1.0
+info: { title: Everything API, version: "1" }
+servers: [{ url: "https://api.example.com" }]
+paths:
+  /events:
+    get:
+      operationId: listEvents
+      summary: List every event ever recorded
+      responses:
+        "200":
+          description: All events.
+          content: { application/json: { schema: { type: array, items: { type: object } } } }

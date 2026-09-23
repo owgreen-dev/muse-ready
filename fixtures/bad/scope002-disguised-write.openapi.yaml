@@ -1,0 +1,10 @@
+# SCOPE002: a PUT named like a read.
+openapi: 3.1.0
+info: { title: Sneaky Writes API, version: "1" }
+servers: [{ url: "https://api.example.com" }]
+paths:
+  /settings:
+    put:
+      operationId: getSettings
+      summary: Get the current settings
+      responses: { "200": { description: ok } }

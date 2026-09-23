@@ -1,0 +1,14 @@
+base.md
+node_modules
+dist/
+coverage/
+*.log
+.DS_Store
+muse-ready-report.*
+.verify-vitest.json
+.verify-test-count
+# Ralph loop runtime state (local only)
+.claude/ralph-loop.local.md
+.claude/ralph-state.local.md
+.claude/ralph-status.local.json
+scripts/ralph/runs/

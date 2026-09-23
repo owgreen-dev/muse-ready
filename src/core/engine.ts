@@ -1,0 +1,62 @@
+import type { Config } from "./config.js";
+import { makeLineLocator } from "./lines.js";
+import { computeGate, computeScore } from "./score.js";
+import type { LoadedInput, Report, Rule, RuleContext, RuleResult } from "./types.js";
+import { RULESET_DATE, TOOL_NAME, TOOL_VERSION } from "./version.js";
+
+function connectorFrom(input: LoadedInput, config: Config) {
+  // OpenAPI docs may carry Muse metadata under info.x-muse; the config file wins over it.
+  const fromSpec = input.kind === "openapi" ? (input.doc?.info?.["x-muse"] ?? {}) : {};
+  return { ...fromSpec, ...(config.connector ?? {}) };
+}
+
+export async function runRules(input: LoadedInput, rules: Rule[], config: Config = {}): Promise<Report> {
+  const ctx: RuleContext = { input, connector: connectorFrom(input, config) };
+  const lineFor = makeLineLocator(input.raw);
+  const results: RuleResult[] = [];
+
+  for (const rule of rules) {
+    const setting = config.rules?.[rule.id];
+    if (setting === "off") continue;
+    const severity = setting ?? rule.severity;
+    const base = {
+      id: rule.id,
+      title: rule.title,
+      category: rule.category,
+      severity,
+      subscores: rule.subscores,
+      rationale: rule.rationale,
+    };
+    if (!rule.appliesTo.includes(input.kind)) {
+      results.push({ ...base, status: "not-applicable", message: `Does not apply to ${input.kind} input.`, findings: [] });
+      continue;
+    }
+    try {
+      const outcome = await rule.run(ctx);
+      const findings = (outcome.findings ?? []).map((f) => (f.pointer ? { ...f, line: lineFor(f.pointer) } : f));
+      results.push({ ...base, ...outcome, findings });
+    } catch (err) {
+      results.push({
+        ...base,
+        status: "warn",
+        message: `Rule crashed and was skipped: ${(err as Error).message}`,
+        findings: [],
+      });
+    }
+  }
+
+  const info = input.kind === "openapi" ? input.doc?.info : undefined;
+  return {
+    tool: { name: TOOL_NAME, version: TOOL_VERSION, rulesetDate: RULESET_DATE },
+    generatedAt: new Date().toISOString(),
+    input: {
+      source: input.source,
+      kind: input.kind,
+      title: typeof info?.title === "string" ? info.title : undefined,
+      version: typeof info?.version === "string" ? info.version : undefined,
+    },
+    score: computeScore(results),
+    gate: computeGate(results),
+    results,
+  };
+}

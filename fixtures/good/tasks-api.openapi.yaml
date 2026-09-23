@@ -1,0 +1,124 @@
+openapi: 3.1.0
+info:
+  title: Tasks API
+  version: 1.2.0
+  description: Create, list and complete tasks in a shared team task list. Built as a reference Muse connector.
+  termsOfService: https://tasks.example.com/terms
+  contact:
+    email: support@tasks.example.com
+  x-logo:
+    url: https://tasks.example.com/logo.png
+  x-muse:
+    privacyPolicyUrl: https://tasks.example.com/privacy
+servers:
+  - url: https://api.tasks.example.com/v1
+security:
+  - bearerAuth: []
+paths:
+  /tasks:
+    get:
+      operationId: listTasks
+      summary: List tasks in the team list
+      description: Returns tasks newest first. Use the cursor from the previous page to fetch more.
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum tasks to return, 1 to 100.
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: cursor
+          in: query
+          description: Opaque cursor from the previous response's next_cursor.
+          schema: { type: string }
+      responses:
+        "200":
+          description: A page of tasks.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Task" } }
+                  next_cursor: { type: [string, "null"] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    post:
+      operationId: createTask
+      summary: Create a new task in the team list
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Unique key so a retried request does not create a duplicate task.
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string, description: Short task title. }
+      responses:
+        "201":
+          description: The created task.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Task" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /tasks/{taskId}:
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        description: ID of the task.
+        schema: { type: string }
+    get:
+      operationId: getTask
+      summary: Get one task by its ID
+      responses:
+        "200":
+          description: The task.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Task" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { description: No task with that ID. }
+    delete:
+      operationId: deleteTask
+      summary: Permanently delete a task
+      description: Deletes the task. Call first with confirm=false to preview what will be removed.
+      parameters:
+        - name: confirm
+          in: query
+          required: true
+          description: Must be true to actually delete. false returns a preview.
+          schema: { type: boolean }
+      responses:
+        "200": { description: Preview of the deletion when confirm is false. }
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: A long-lived personal access token from Settings → API tokens.
+  responses:
+    Unauthorized:
+      description: The token is missing, revoked or expired. Create a new one in Settings → API tokens.
+    RateLimited:
+      description: Too many requests. Wait for Retry-After seconds, then retry.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema: { type: integer }
+  schemas:
+    Task:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        done: { type: boolean }

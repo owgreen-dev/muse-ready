@@ -1,0 +1,9 @@
+{
+  "swagger": "2.0",
+  "info": { "title": "Legacy API", "version": "1.0.0", "description": "A Swagger 2.0 document that should be upgraded." },
+  "host": "api.example.com",
+  "schemes": ["https"],
+  "paths": {
+    "/ping": { "get": { "operationId": "getPing", "summary": "Check the service is reachable", "responses": { "200": { "description": "pong" } } } }
+  }
+}

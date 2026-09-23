@@ -1,0 +1,30 @@
+{
+  "tools": [
+    {
+      "name": "search_notes",
+      "description": "Search the user's notes by keyword and return matching titles with IDs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": { "type": "string", "description": "Keywords to search for." },
+          "limit": { "type": "integer", "description": "Maximum results, 1 to 50." }
+        },
+        "required": ["query"]
+      },
+      "annotations": { "readOnlyHint": true }
+    },
+    {
+      "name": "delete_note",
+      "description": "Permanently delete a note. Call with confirm=false first to preview.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "note_id": { "type": "string", "description": "ID from search_notes." },
+          "confirm": { "type": "boolean", "description": "Must be true to delete." }
+        },
+        "required": ["note_id", "confirm"]
+      },
+      "annotations": { "readOnlyHint": false, "destructiveHint": true }
+    }
+  ]
+}

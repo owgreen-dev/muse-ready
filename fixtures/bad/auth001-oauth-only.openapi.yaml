@@ -1,0 +1,23 @@
+# AUTH001 + AUTH002: OAuth is the only way in, with an implicit flow and no refreshUrl.
+openapi: 3.1.0
+info: { title: OAuth Only API, version: "1" }
+servers: [{ url: "https://api.example.com" }]
+security: [{ oauth: [read] }]
+paths:
+  /me:
+    get:
+      operationId: getProfile
+      summary: Get the signed-in user's profile
+      responses: { "200": { description: ok } }
+components:
+  securitySchemes:
+    oauth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://auth.example.com/authorize
+          scopes: { read: Read access }
+        authorizationCode:
+          authorizationUrl: https://auth.example.com/authorize
+          tokenUrl: https://auth.example.com/token
+          scopes: { read: Read access }

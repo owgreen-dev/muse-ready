@@ -1,0 +1,11 @@
+{
+  "connector": {
+    "name": "Notes",
+    "description": "Search and tidy up your personal notes from Muse.",
+    "iconUrl": "https://notes.example.com/icon.png",
+    "privacyPolicyUrl": "https://notes.example.com/privacy",
+    "termsUrl": "https://notes.example.com/terms",
+    "auth": "bearer",
+    "serverUrl": "https://mcp.notes.example.com/mcp"
+  }
+}

@@ -1,0 +1,13 @@
+# NET001: a laptop server over plain HTTP, and a private-network IP.
+openapi: 3.1.0
+info: { title: Local API, version: "1" }
+servers:
+  - url: http://localhost:3000
+  - url: "https://{host}/v1"
+    variables: { host: { default: 192.168.1.20 } }
+paths:
+  /ping:
+    get:
+      operationId: getPing
+      summary: Check the service is reachable
+      responses: { "200": { description: ok } }

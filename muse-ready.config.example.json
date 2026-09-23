@@ -1,0 +1,14 @@
+{
+  "rules": {
+    "IDEM001": "medium"
+  },
+  "failUnder": 80,
+  "connector": {
+    "name": "Tasks",
+    "description": "Create, list and complete tasks in your team's shared list.",
+    "iconUrl": "https://example.com/icon.png",
+    "privacyPolicyUrl": "https://example.com/privacy",
+    "termsUrl": "https://example.com/terms",
+    "auth": "bearer"
+  }
+}

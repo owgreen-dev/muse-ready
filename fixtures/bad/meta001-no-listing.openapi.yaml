@@ -1,0 +1,10 @@
+# META001: no description, privacy policy, terms, icon or contact.
+openapi: 3.1.0
+info: { title: Bare API, version: "1" }
+servers: [{ url: "https://api.example.com" }]
+paths:
+  /ping:
+    get:
+      operationId: getPing
+      summary: Check the service is reachable
+      responses: { "200": { description: ok } }

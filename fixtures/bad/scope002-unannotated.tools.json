@@ -1,0 +1,10 @@
+{
+  "tools": [
+    {
+      "name": "delete_file",
+      "description": "Delete a file from the user's drive permanently.",
+      "inputSchema": { "type": "object", "properties": { "path": { "type": "string", "description": "File path." } } },
+      "annotations": { "destructiveHint": false }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# DESC001: operations with no summary, no description and no operationId.
+openapi: 3.1.0
+info: { title: Terse API, version: "1" }
+servers: [{ url: "https://api.example.com" }]
+paths:
+  /a:
+    get:
+      responses: { "200": { description: ok } }
+  /b:
+    get:
+      summary: Gets b
+      responses: { "200": { description: ok } }

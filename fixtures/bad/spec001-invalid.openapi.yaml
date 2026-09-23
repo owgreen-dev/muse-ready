@@ -1,0 +1,13 @@
+# SPEC001: info.version is missing and a response has no description.
+openapi: 3.1.0
+info:
+  title: Broken API
+servers: [{ url: "https://api.example.com" }]
+paths:
+  /things:
+    get:
+      operationId: listThings
+      summary: List all things in the account
+      responses:
+        "200":
+          content: { application/json: { schema: { type: array, items: { type: string } } } }
