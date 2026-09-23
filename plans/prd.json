@@ -80,8 +80,9 @@
         "A test runs a full probe with a known token and asserts the token string appears in none of: terminal output, JSON, Markdown, SARIF, badge, thrown errors",
         "bash scripts/verify.sh passes"
       ],
-      "passes": false,
-      "notes": "Depends on T-003."
+      "passes": true,
+      "notes": "Depends on T-003.",
+      "completed_at": "2026-09-23T10:23:50-04:00"
     },
     {
       "id": "T-005",

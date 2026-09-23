@@ -72,12 +72,24 @@ By default muse-ready only reads your document. With `--probe` it also calls the
 The latency and size thresholds are provisional because Muse's limits are undocumented.
 
 **Exactly what it sends:**
-- Only `GET` requests, at most 8 documented operations plus a few repeats for latency, 13 at the most. It never sends `POST`, `PUT`, `PATCH` or `DELETE`, and a test proves it.
+- Only `GET` requests: at most 8 documented operations, a repeat of each secured one without credentials, and a few repeats for latency. That's 16 requests at the most. It never sends `POST`, `PUT`, `PATCH` or `DELETE`, and a test proves it.
 - It calls only operations whose path and required query parameters have an `example` or `default`, and skips anything with a request body.
 - It skips GETs named like actions, such as `GET /logout`, because they can still have side effects. The report lists everything it skipped and why.
 - It never connects to loopback, private, link-local or cloud-metadata addresses. It checks every DNS answer and every redirect, and pins the connection to the vetted address.
 - It requires HTTPS with a verified certificate. Each request has a 30 s limit and responses are cut off at about 1 MiB.
-- It sends no credentials yet.
+- Credentials are opt-in, as described below.
+
+**Authenticated probing.** Set `MUSE_READY_TOKEN` to probe secured endpoints:
+
+```sh
+MUSE_READY_TOKEN=... npx muse-ready openapi.yaml --probe
+```
+
+- The token is read only from that environment variable. There is no CLI flag or config key for it, so it stays out of shell history, process lists and committed files.
+- It's attached only to operations the spec marks as secured, and only on the probe target's own origin. It is never sent to the host serving the spec, and it's dropped on any redirect to another origin.
+- The header comes from `probe.authHeader` in the config, else from the spec's static scheme (API-key header, bearer or basic), else `Authorization: Bearer`.
+- Each secured operation is also called once without the token, so ERR002 can check that it is refused.
+- The token never appears in any report. Tests check every output format against an API that echoes it back.
 
 `--probe-allow-private` lifts the private-address and HTTPS restrictions so you can test an API on your own machine. Don't use it in CI.
 
@@ -224,7 +236,6 @@ console.log(report.score.overall, report.gate.passed);
 
 ## Not yet
 
-- Authenticated probing (a token for secured endpoints).
 - An optional LLM judge for description quality and injection surfaces in API output.
 - A GitHub Action wrapper and HTML report.
 - Profiles for other agents (generic MCP, ChatGPT apps, Claude connectors).

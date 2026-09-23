@@ -10,6 +10,7 @@ export { loadInput, LoadError, detectKind } from "./core/load.js";
 export { loadConfig, validateConfig, type Config } from "./core/config.js";
 export { runRules, connectorFrom } from "./core/engine.js";
 export { runProbe, type ProbeOptions } from "./probe/run.js";
+export { authHeaders, TOKEN_ENV } from "./probe/auth.js";
 export { computeScore, computeGate, grade, SEVERITY_WEIGHT, GATE_CATEGORIES } from "./core/score.js";
 export { BUILTIN_RULES } from "./rules/index.js";
 export { renderTerminal } from "./report/terminal.js";

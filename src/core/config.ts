@@ -11,6 +11,10 @@ export interface Config {
   connector?: ConnectorMeta;
   /** Exit non-zero when the overall score is below this. */
   failUnder?: number;
+  probe?: {
+    /** Header that carries MUSE_READY_TOKEN, e.g. "X-API-Key". Default: from the spec, else Authorization: Bearer. */
+    authHeader?: string;
+  };
 }
 
 export const CONFIG_FILES = [
@@ -32,6 +36,12 @@ export function validateConfig(cfg: unknown, where: string): Config {
   }
   if (c.failUnder !== undefined && (typeof c.failUnder !== "number" || c.failUnder < 0 || c.failUnder > 100)) {
     throw new Error(`${where}: failUnder must be a number from 0 to 100`);
+  }
+  if (c.probe?.authHeader !== undefined && (typeof c.probe.authHeader !== "string" || !/^[A-Za-z0-9-]+$/.test(c.probe.authHeader))) {
+    throw new Error(`${where}: probe.authHeader must be a header name`);
+  }
+  if ((c as Record<string, unknown>).token !== undefined || (c.probe as Record<string, unknown> | undefined)?.token !== undefined) {
+    throw new Error(`${where}: never put a token in the config file. Use the MUSE_READY_TOKEN environment variable.`);
   }
   return c;
 }

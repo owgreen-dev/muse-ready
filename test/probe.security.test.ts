@@ -3,6 +3,10 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import { expandV6, isBlockedAddress } from "../src/probe/address.js";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { check, renderBadge, renderMarkdown, renderSarif, renderTerminal } from "../src/index.js";
 import { ProbeError, safeRequest, type SafeRequestOptions } from "../src/probe/http.js";
 
 type Handler = (req: IncomingMessage, res: ServerResponse) => void;
@@ -153,7 +157,7 @@ describe("probe HTTP client security", () => {
   });
 
   it("never writes credentials into any report format", async () => {
-    // At this layer the "reports" are results and errors. T-004 extends this to the report renderers.
+    // Results and errors from the HTTP client first, then every report renderer.
     const s = await serve((req, res) => {
       if (req.url?.startsWith("/echo")) res.end("fine");
       else if (req.url === "/slow") setTimeout(() => res.end(), 2_000);
@@ -167,6 +171,33 @@ describe("probe HTTP client security", () => {
       outputs.push(err.message, String(err.stack), JSON.stringify(err));
     }
     for (const out of outputs) expect(out).not.toContain(TOKEN);
+
+    // Full pipeline: a hostile API that echoes the credential back in every response and error.
+    const echo = await serve((req, res) => {
+      const got = String(req.headers.authorization ?? "none");
+      if (req.url === "/v1/me") res.writeHead(500).end(`internal error for ${got}\n    at handler (/srv/app.js:1:1)`);
+      else res.end(JSON.stringify([{ token: got }]));
+    });
+    const dir = mkdtempSync(join(tmpdir(), "muse-ready-leak-"));
+    const file = join(dir, "openapi.json");
+    writeFileSync(file, JSON.stringify({
+      openapi: "3.1.0", info: { title: "Echo", version: "1" }, servers: [{ url: `${echo.origin}/v1` }],
+      security: [{ bearer: [] }], components: { securitySchemes: { bearer: { type: "http", scheme: "bearer" } } },
+      paths: {
+        "/items": { get: { operationId: "listItems", summary: "List items", responses: { "200": { description: "ok", content: { "application/json": { schema: { type: "array" } } } } } } },
+        "/me": { get: { operationId: "getProfile", summary: "Current user", responses: { "200": { description: "ok" } } } },
+      },
+    }));
+    const report = await check(file, { config: {}, probe: { ...{ request: local }, authHeaders: { Authorization: `Bearer ${TOKEN}` } } });
+    expect(echo.requests.some((r) => r.headers.authorization === `Bearer ${TOKEN}`)).toBe(true); // it really was sent
+    const rendered = [
+      JSON.stringify(report),
+      renderTerminal(report, { color: false, verbose: true }),
+      renderMarkdown(report),
+      JSON.stringify(renderSarif(report)),
+      JSON.stringify(renderBadge(report)),
+    ];
+    for (const out of rendered) expect(out).not.toContain(TOKEN);
   });
 });
 

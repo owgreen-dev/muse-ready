@@ -53,3 +53,13 @@ Goal: v0.2.0, live probe mode and a GitHub Action, behind a security gate (see p
 **Learned:**
 - A fake AWS key in a test tripped gitleaks. It's allowlisted inline with `// gitleaks:allow` and a reason, which is visible in review.
 - A live run on Petstore found a real 500 and auth that isn't enforced. It also showed GET /user/logout was being called, which led to the action-name skip.
+
+## 2026-09-23 - T-004 authenticated probing
+
+**Changed:**
+- `src/probe/auth.ts` has `authHeaders()`. The header comes from `probe.authHeader` in the config, else the spec's static scheme (API-key header, basic or bearer), else `Authorization: Bearer`.
+- The CLI reads only `MUSE_READY_TOKEN`. The config rejects any `token` key.
+- The probe attaches the header to secured operations only, and repeats each one unauthenticated for ERR002.
+- The credential header's name is passed as a credential header, so it's stripped on cross-origin redirects.
+
+**Tests:** `test/probe.auth.test.ts` covers the env-only source, header selection and origin isolation across the spec host, target and redirect target. The policy test "never writes credentials into any report format" now runs a full probe against an API that echoes the token and checks JSON, terminal, Markdown, SARIF and badge output. Suite: 99 tests.

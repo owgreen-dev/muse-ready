@@ -3,6 +3,7 @@ import { writeFile } from "node:fs/promises";
 import { Command, InvalidArgumentError, Option } from "commander";
 import { loadConfig } from "../core/config.js";
 import { connectorFrom, runRules } from "../core/engine.js";
+import { TOKEN_ENV, authHeaders } from "../probe/auth.js";
 import { runProbe } from "../probe/run.js";
 import { LoadError, loadInput } from "../core/load.js";
 import { RULESET_DATE, TOOL_VERSION } from "../core/version.js";
@@ -44,6 +45,7 @@ const program = new Command()
     "after",
     `
 Exit codes: 0 ready, 1 blocking failure or score below --fail-under, 2 could not run.
+--probe attaches $MUSE_READY_TOKEN, if set, to secured operations only, and only on the target's own origin.
 Ruleset reflects public evidence about Muse as of ${RULESET_DATE}.
 
 Examples:
@@ -89,8 +91,12 @@ async function main(): Promise<number> {
   let probe;
   if (opts.probe || opts.probeAllowPrivate) {
     const connector = connectorFrom(input, config);
-    if (opts.format === "terminal") console.error("Probing with read-only GET requests…");
+    const token = process.env[TOKEN_ENV];
+    if (opts.format === "terminal") {
+      console.error(`Probing with read-only GET requests${token ? ` (authenticated with ${TOKEN_ENV})` : ""}…`);
+    }
     probe = await runProbe(input, connector, {
+      authHeaders: token ? authHeaders(token, input, config.probe?.authHeader) : undefined,
       request: opts.probeAllowPrivate ? { allowPrivateNetwork: true, allowInsecureHttp: true } : {},
     });
   }

@@ -30,7 +30,8 @@ export function renderTerminal(report: Report, opts: { color?: boolean; verbose?
 
   if (report.probe) {
     const answered = report.probe.requests.filter((r) => r.status !== undefined).length;
-    lines.push(c.dim(`Probe: ${report.probe.requests.length} GET ${report.probe.requests.length === 1 ? "request" : "requests"} to ${report.probe.target || "(no target)"}, ${answered} answered.`));
+    const authed = report.probe.requests.filter((r) => r.authenticated).length;
+    lines.push(c.dim(`Probe: ${report.probe.requests.length} GET ${report.probe.requests.length === 1 ? "request" : "requests"} to ${report.probe.target || "(no target)"}, ${answered} answered${authed ? `, ${authed} authenticated` : ""}.`));
   }
 
   lines.push("");

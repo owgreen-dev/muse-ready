@@ -85,7 +85,14 @@ function pathOf(url: string): string {
 async function call(url: string, operation: string | undefined, headers: Record<string, string> | undefined, opts: ProbeOptions, maxBytes: number): Promise<ProbeRequest> {
   const record: ProbeRequest = { method: "GET", path: pathOf(url), operation, authenticated: !!headers && Object.keys(headers).length > 0 };
   try {
-    const r = await safeRequest(url, { ...opts.request, timeoutMs: opts.request?.timeoutMs ?? 30_000, maxBytes, headers });
+    const r = await safeRequest(url, {
+      ...opts.request,
+      timeoutMs: opts.request?.timeoutMs ?? 30_000,
+      maxBytes,
+      headers,
+      // Whatever header carries the credential is stripped on any cross-origin redirect.
+      credentialHeaders: Object.keys(opts.authHeaders ?? {}),
+    });
     Object.assign(record, { status: r.status, ms: r.ms, bytes: r.bytes, truncated: r.truncated, bodySample: r.body.slice(0, BODY_SAMPLE_BYTES) });
   } catch (err) {
     const e = err instanceof ProbeError ? err : new ProbeError("network", "request failed");
