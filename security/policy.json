@@ -1,12 +1,39 @@
 {
   "$comment": "Security policy for muse-ready. Human-owned: the Ralph guard hook blocks agent edits to this file. Changing it is a reviewed decision.",
-  "approvedProductionDependencies": ["@readme/openapi-parser", "commander", "picocolors", "yaml"],
-  "allowedLicenses": ["MIT", "ISC", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "0BSD", "BlueOak-1.0.0", "CC0-1.0", "Python-2.0"],
-  "installScriptAllowlist": ["node_modules/esbuild", "node_modules/fsevents"],
+  "approvedProductionDependencies": [
+    "@readme/openapi-parser",
+    "commander",
+    "picocolors",
+    "yaml"
+  ],
+  "allowedLicenses": [
+    "MIT",
+    "ISC",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "0BSD",
+    "BlueOak-1.0.0",
+    "CC0-1.0",
+    "Python-2.0"
+  ],
+  "installScriptAllowlist": [
+    "node_modules/esbuild",
+    "node_modules/fsevents"
+  ],
   "auditLevel": "low",
-  "networkAllowedFiles": ["src/core/load.ts", "src/probe/"],
+  "networkAllowedFiles": [
+    "src/core/load.ts",
+    "src/probe/",
+    "src/sim/"
+  ],
   "childProcessAllowedFiles": [],
-  "packageFilesAllowed": ["^dist/", "^README\\.md$", "^LICENSE$", "^package\\.json$"],
+  "packageFilesAllowed": [
+    "^dist/",
+    "^README\\.md$",
+    "^LICENSE$",
+    "^package\\.json$"
+  ],
   "probeSecurityTests": {
     "file": "test/probe.security.test.ts",
     "requiredTests": [
@@ -19,5 +46,5 @@
       "never writes credentials into any report format"
     ]
   },
-  "minimumTestCount": 52
+  "minimumTestCount": 131
 }
