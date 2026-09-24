@@ -73,8 +73,9 @@
         "Tested against a deterministic fake model server in tests; no real LLM calls in CI",
         "bash scripts/verify.sh passes (after H-101)"
       ],
-      "passes": false,
-      "notes": "Blocked on H-101 (policy change) and H-102 (model and key) for real use; the fake-server tests don't need either."
+      "passes": true,
+      "notes": "Blocked on H-101 (policy change) and H-102 (model and key) for real use; the fake-server tests don't need either.",
+      "completed_at": "2026-09-24T16:41:04-04:00"
     },
     {
       "id": "T-105",
@@ -97,10 +98,11 @@
       "acceptanceCriteria": [
         "networkAllowedFiles includes src/sim/"
       ],
-      "passes": false,
+      "passes": true,
       "skip": true,
       "skipReason": "security/policy.json is human-owned.",
-      "notes": ""
+      "notes": "Approved by Oscar 2026-09-24; applied in a1dca19.",
+      "completed_at": "2026-09-24T16:41:04-04:00"
     },
     {
       "id": "H-102",

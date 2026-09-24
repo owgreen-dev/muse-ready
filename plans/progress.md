@@ -128,3 +128,19 @@ All six automatable tasks pass. T-007 to T-010 are human tasks (see prd.json). S
 
 **Tests:** `test/scenarios.test.ts`. The wording test skips `*.tasks.yaml`. Suite: 131 tests.
 **Next:** T-104, the simulator core. It needs H-101, adding `src/sim/` to `networkAllowedFiles`, before any model client code can pass the audit.
+
+## 2026-09-24 - v0.3.1 released, T-104 simulator core
+
+**Released:** v0.3.1 is on GitHub, with profiles, SPEAK001 and scenario files. CI passes on Node 20, 22 and 24.
+- The v0.3.0 tag exists but was never published to npm. Its CI caught a race: three test files each rebuilt `dist/` while others ran the CLI.
+- Fixed by building once in `test/global-setup.ts`.
+- `npm publish` for 0.3.1 needs Oscar's one-time code.
+
+**H-101:** applied with Oscar's approval. `src/sim/` is now allowed network access, and `minimumTestCount` rose to 131.
+
+**T-104:**
+- `src/sim/tools.ts` turns operations into tools and answers calls from the spec's examples or example values derived from the schema. It handles cyclic schemas safely.
+- `src/sim/client.ts` is the OpenAI-compatible client. It refuses `-contributor` models, plain HTTP except to a local model, and credentials in the URL. The key is sent only as a bearer header, and errors report the HTTP status only.
+- `src/sim/run.ts` runs each scenario several times with a turn cap and grades each run with `grade()`. An auth or configuration error stops after the first run.
+
+**Tests:** `test/simulate.test.ts` uses a scripted fake model. A careful agent scores 100%. A reckless agent is caught deleting without asking. Only the model URL is fetched, and the key never appears in results. Suite: 140 tests.
