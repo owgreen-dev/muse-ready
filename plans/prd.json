@@ -88,8 +88,9 @@
         "The Action gains simulate and tasks-file inputs; the key comes from the workflow's env (a secret)",
         "bash scripts/verify.sh passes"
       ],
-      "passes": false,
-      "notes": "Depends on T-103 and T-104."
+      "passes": true,
+      "notes": "Depends on T-103 and T-104.",
+      "completed_at": "2026-09-24T16:43:22-04:00"
     },
     {
       "id": "H-101",

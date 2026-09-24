@@ -147,6 +147,20 @@ export interface Report {
   input: { source: string; kind: InputKind; title?: string; version?: string };
   score: Score;
   gate: { passed: boolean; blocking: string[] };
+  /** Scenario simulation results; absent unless --simulate was used. */
+  simulation?: {
+    model: string;
+    runs: number;
+    passRate: number;
+    tasksFile: string;
+    scenarios: {
+      id: string;
+      request: string;
+      line?: number;
+      passed: number;
+      runs: { pass: boolean; reasons: string[]; calls: { operation: string; args: Record<string, unknown> }[]; turns: number; reply?: string }[];
+    }[];
+  };
   /** Summary of live probing; absent unless --probe was used. */
   probe?: { enabled: true; target: string; requests: Omit<ProbeRequest, "bodySample">[]; skipped: { operation: string; reason: string }[]; error?: string };
   results: RuleResult[];

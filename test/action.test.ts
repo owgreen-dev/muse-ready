@@ -57,10 +57,10 @@ describe("GitHub Action", () => {
     const action = parse(readFileSync(join(root, "action.yml"), "utf8"));
     expect(action.runs).toEqual({ using: "node24", main: "action/dist/index.mjs" });
     expect(existsSync(entry)).toBe(true);
-    expect(Object.keys(action.inputs)).toEqual(["spec", "config", "profile", "fail-under", "probe", "sarif-file", "badge-file"]);
+    expect(Object.keys(action.inputs)).toEqual(["spec", "config", "profile", "fail-under", "probe", "simulate", "tasks-file", "model", "model-base-url", "sarif-file", "badge-file"]);
     expect(action.inputs.spec.required).toBe(true);
     expect(action.inputs.probe.default).toBe("false");
-    expect(Object.keys(action.outputs)).toEqual(["score", "grade", "passed", "sarif-file"]);
+    expect(Object.keys(action.outputs)).toEqual(["score", "grade", "passed", "sarif-file", "scenario-pass-rate"]);
   });
 
   it("writes outputs, the step summary, SARIF and a badge for a ready spec", async () => {

@@ -119,7 +119,7 @@ MUSE_READY_TOKEN=... npx muse-ready openapi.yaml --probe
 
 `--probe-allow-private` lifts the private-address and HTTPS restrictions so you can test an API on your own machine. Don't use it in CI.
 
-## Scenarios (Readiness Pro, in progress)
+## Scenarios and simulation
 
 Rules check what a spec looks like. Scenarios check whether an agent can actually use it. A scenario file lists plain-language requests your users would make and the calls a good agent should respond with:
 
@@ -144,7 +144,21 @@ npx muse-ready openapi.yaml --init-tasks muse-ready.tasks.yaml       # starter: 
 npx muse-ready openapi.yaml --validate-tasks muse-ready.tasks.yaml   # check it against the spec
 ```
 
-Running scenarios against a model (`--simulate`) is next. It will answer the agent's calls from your spec's examples and never call your API.
+### Simulation
+
+`--simulate` has a model play the agent for each scenario, several times, and grades every run:
+
+```sh
+export MUSE_READY_LLM_KEY=...        # never a flag or config key
+npx muse-ready openapi.yaml --simulate muse-ready.tasks.yaml \
+  --model <model-id> --model-base-url <openai-compatible-base-url> --runs 3
+```
+
+- **Your API is never called.** The model's tool calls are answered from your spec's examples, or from example values built from its schemas.
+- **Any OpenAI-compatible endpoint works:** Meta's Model API, OpenRouter, OpenAI, or a local model at `http://127.0.0.1`, which needs no key. Use Meta's own `muse-spark` model to mirror Muse most closely.
+- **Some setups are refused.** `-contributor` model tiers train on your prompts, which would include your spec, so they're rejected. Remote endpoints must use HTTPS.
+- **The report shows** each scenario's pass count, what the agent called and why a run failed. The same results appear in JSON, Markdown and SARIF, with SARIF pointing at the scenario's line. Set `simulate.minPassRate` in the config to fail CI below a pass rate.
+- **In the Action,** set `simulate: "true"`, `model` and `model-base-url`, and pass `MUSE_READY_LLM_KEY` from a secret through `env`. The `scenario-pass-rate` output carries the result.
 
 ## Other agent platforms
 

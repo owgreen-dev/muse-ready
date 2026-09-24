@@ -144,3 +144,14 @@ All six automatable tasks pass. T-007 to T-010 are human tasks (see prd.json). S
 - `src/sim/run.ts` runs each scenario several times with a turn cap and grades each run with `grade()`. An auth or configuration error stops after the first run.
 
 **Tests:** `test/simulate.test.ts` uses a scripted fake model. A careful agent scores 100%. A reckless agent is caught deleting without asking. Only the model URL is fetched, and the key never appears in results. Suite: 140 tests.
+
+## 2026-09-24 - T-105 --simulate in the CLI, reports and Action
+
+**Changed:**
+- `src/sim/entry.ts` has `runSimulation()`, shared by the CLI and the Action. It loads and validates the scenario file against the spec, checks the model config, and requires `MUSE_READY_LLM_KEY` for non-local endpoints. Failures come back as `SimulationSetupError` messages that say how to fix the problem.
+- New CLI flags `--simulate [file]`, `--model`, `--model-base-url` and `--runs`. New config block `simulate: {model, baseUrl, tasks, runs, minPassRate}`, which rejects any key.
+- The Action gains `simulate`, `tasks-file`, `model` and `model-base-url` inputs, and a `scenario-pass-rate` output.
+- Reports: the terminal and Markdown reports get a Simulation section. The JSON report gets a `simulation` block. SARIF gets a `SIM001` finding per failing scenario, located at the scenario's line.
+
+**Tests:** `test/simulate.cli.test.ts` drives the real CLI and the bundled Action against `test/fake-model.ts`. Suite: 145 tests.
+**Still needed:** H-102, a real model plus key, for a first real run. The Meta Model API base URL is not recorded here; take it from Meta's docs.

@@ -33,6 +33,22 @@ export function renderSarif(report: Report, cwd = process.cwd()): object {
       }));
     });
 
+  if (report.simulation) {
+    const sim = report.simulation;
+    const simUri = relative(cwd, sim.tasksFile).split("\\").join("/");
+    for (const s of sim.scenarios) {
+      const fail = s.runs.find((r) => !r.pass);
+      if (!fail) continue;
+      results.push({
+        ruleId: "SIM001",
+        ruleIndex: BUILTIN_RULES.length,
+        level: s.passed === 0 ? "error" : "warning",
+        message: { text: `Scenario "${s.id}" passed ${s.passed}/${s.runs.length} runs: ${fail.reasons.join("; ")}` },
+        locations: [{ physicalLocation: { artifactLocation: { uri: simUri }, region: { startLine: s.line ?? 1 } } }],
+      });
+    }
+  }
+
   return {
     $schema: "https://json.schemastore.org/sarif-2.1.0.json",
     version: "2.1.0",
@@ -54,7 +70,17 @@ export function renderSarif(report: Report, cwd = process.cwd()): object {
                 tags: [r.category, "muse"],
                 ...(["auth", "injection", "network"].includes(r.category) ? { "security-severity": SECURITY_SEVERITY[r.severity] } : {}),
               },
-            })),
+            })).concat([
+              {
+                id: "SIM001",
+                name: "ScenarioPasses",
+                shortDescription: { text: "Simulated agent completes the scenario" },
+                fullDescription: { text: "A model acting as the agent made the calls the scenario expects, with the right arguments and no unexpected writes. Tool calls are answered from the spec's examples." },
+                helpUri: `${REPO_URL}#simulation`,
+                defaultConfiguration: { level: "warning" },
+                properties: { tags: ["simulation"] },
+              } as any,
+            ]),
           },
         },
         results,

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { access, readFile, writeFile } from "node:fs/promises";
 import { ScenarioError, checkAgainstSpec, parseScenarios, starterScenarios } from "../sim/scenarios.js";
+import { SimulationSetupError, runSimulation } from "../sim/entry.js";
+import type { Report } from "../core/types.js";
 import { Command, InvalidArgumentError, Option } from "commander";
 import { loadConfig } from "../core/config.js";
 import { connectorFrom, runRules } from "../core/engine.js";
@@ -45,6 +47,14 @@ const program = new Command()
   .option("--no-color", "disable colors")
   .option("-v, --verbose", "also list rules that do not apply")
   .option("--list-rules", "print the rule catalog and exit")
+  .option("--simulate [tasks-file]", "run scenarios with a model playing the agent (default file: muse-ready.tasks.yaml); tool calls are answered from the spec, never your API")
+  .option("--model <id>", "model for --simulate, e.g. muse-spark-1.3")
+  .option("--model-base-url <url>", "OpenAI-compatible base URL for --simulate; key goes in MUSE_READY_LLM_KEY")
+  .option("--runs <n>", "runs per scenario for --simulate (default 3)", (v) => {
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 1 || n > 20) throw new InvalidArgumentError("must be 1-20");
+    return n;
+  })
   .option("--init-tasks <file>", "write a starter scenario file for the spec, for Readiness Pro simulation")
   .option("--validate-tasks <file>", "check a scenario file against the spec and exit")
   .addHelpText(
@@ -150,7 +160,25 @@ async function main(): Promise<number> {
     }
   }
 
-  const report = await runRules(input, BUILTIN_RULES, config, probe);
+  let simulation: Report["simulation"];
+  if (opts.simulate) {
+    try {
+      if (opts.format === "terminal") console.error("Simulating scenarios (tool calls are answered from the spec; your API is not called)…");
+      simulation = await runSimulation(input, config, {
+        tasksFile: typeof opts.simulate === "string" ? opts.simulate : undefined,
+        model: opts.model,
+        baseUrl: opts.modelBaseUrl,
+        runs: opts.runs,
+      });
+    } catch (err) {
+      if (err instanceof SimulationSetupError) {
+        console.error(`muse-ready: ${err.message}`);
+        return EXIT_ERROR;
+      }
+      throw err;
+    }
+  }
+  const report = await runRules(input, BUILTIN_RULES, config, probe, simulation);
   const json = () => JSON.stringify(report, null, 2) + "\n";
   const sarif = () => JSON.stringify(renderSarif(report), null, 2) + "\n";
 
@@ -175,6 +203,11 @@ async function main(): Promise<number> {
       console.log(renderTerminal(report, { color: opts.color === false ? false : undefined, verbose: opts.verbose }));
   }
 
+  const minPass = config.simulate?.minPassRate;
+  if (simulation && minPass !== undefined && simulation.passRate < minPass) {
+    if (opts.format === "terminal") console.error(`Scenario pass rate ${simulation.passRate}% is below simulate.minPassRate ${minPass}%.`);
+    return EXIT_FAILED;
+  }
   const failUnder: number | undefined = opts.failUnder ?? config.failUnder;
   if (!report.gate.passed) return EXIT_FAILED;
   if (failUnder !== undefined && report.score.overall < failUnder) {

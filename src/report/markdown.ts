@@ -26,6 +26,15 @@ export function renderMarkdown(report: Report): string {
     if (r.status === "not-applicable") continue;
     out.push(`| ${EMOJI[r.status]} | **${r.id}** ${esc(r.title)} | ${esc(r.message)} | ${r.severity} |`);
   }
+  if (report.simulation) {
+    const sim = report.simulation;
+    out.push("", "## Simulation", "", `Model \`${esc(sim.model)}\`, ${sim.runs} ${sim.runs === 1 ? "run" : "runs"} per scenario. Tool calls were answered from the spec's examples; the API was not called. **Pass rate: ${sim.passRate}%**`, "");
+    out.push("| Scenario | Request | Passed | First problem |", "|---|---|---|---|");
+    for (const s of sim.scenarios) {
+      const fail = s.runs.find((r) => !r.pass);
+      out.push(`| ${esc(s.id)} | ${esc(s.request)} | ${s.passed}/${s.runs.length} | ${fail ? esc(fail.reasons[0] ?? "") : "–"} |`);
+    }
+  }
   if (report.probe) {
     out.push("", "## Live probe", "", `Target: \`${esc(report.probe.target || "none")}\`. Only read-only requests were sent.`, "");
     if (report.probe.requests.length) {

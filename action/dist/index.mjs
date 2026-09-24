@@ -48,10 +48,10 @@ var require_identity = __commonJS({
     var NODE_TYPE = /* @__PURE__ */ Symbol.for("yaml.node.type");
     var isAlias = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === ALIAS;
     var isDocument = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === DOC;
-    var isMap = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === MAP;
+    var isMap2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === MAP;
     var isPair = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === PAIR;
     var isScalar = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SCALAR;
-    var isSeq = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SEQ;
+    var isSeq2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SEQ;
     function isCollection(node) {
       if (node && typeof node === "object")
         switch (node[NODE_TYPE]) {
@@ -84,11 +84,11 @@ var require_identity = __commonJS({
     exports.isAlias = isAlias;
     exports.isCollection = isCollection;
     exports.isDocument = isDocument;
-    exports.isMap = isMap;
+    exports.isMap = isMap2;
     exports.isNode = isNode2;
     exports.isPair = isPair;
     exports.isScalar = isScalar;
-    exports.isSeq = isSeq;
+    exports.isSeq = isSeq2;
   }
 });
 
@@ -4196,9 +4196,9 @@ var require_resolve_flow_collection = __commonJS({
     var blockMsg = "Block collections are not allowed within flow collections";
     var isBlock = (token) => token && (token.type === "block-map" || token.type === "block-seq");
     function resolveFlowCollection({ composeNode, composeEmptyNode }, ctx, fc, onError, tag) {
-      const isMap = fc.start.source === "{";
-      const fcName = isMap ? "flow map" : "flow sequence";
-      const NodeClass = tag?.nodeClass ?? (isMap ? YAMLMap.YAMLMap : YAMLSeq.YAMLSeq);
+      const isMap2 = fc.start.source === "{";
+      const fcName = isMap2 ? "flow map" : "flow sequence";
+      const NodeClass = tag?.nodeClass ?? (isMap2 ? YAMLMap.YAMLMap : YAMLSeq.YAMLSeq);
       const coll = new NodeClass(ctx.schema);
       coll.flow = true;
       const atRoot = ctx.atRoot;
@@ -4234,7 +4234,7 @@ var require_resolve_flow_collection = __commonJS({
             offset = props.end;
             continue;
           }
-          if (!isMap && ctx.options.strict && utilContainsNewline.containsNewline(key))
+          if (!isMap2 && ctx.options.strict && utilContainsNewline.containsNewline(key))
             onError(
               key,
               // checked by containsNewline()
@@ -4274,7 +4274,7 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap && !sep && !props.found) {
+        if (!isMap2 && !sep && !props.found) {
           const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
@@ -4297,7 +4297,7 @@ var require_resolve_flow_collection = __commonJS({
             startOnNewline: false
           });
           if (valueProps.found) {
-            if (!isMap && !props.found && ctx.options.strict) {
+            if (!isMap2 && !props.found && ctx.options.strict) {
               if (sep)
                 for (const st of sep) {
                   if (st === valueProps.found)
@@ -4329,7 +4329,7 @@ var require_resolve_flow_collection = __commonJS({
           const pair = new Pair.Pair(keyNode, valueNode);
           if (ctx.options.keepSourceTokens)
             pair.srcToken = collItem;
-          if (isMap) {
+          if (isMap2) {
             const map = coll;
             if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
               onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
@@ -4345,7 +4345,7 @@ var require_resolve_flow_collection = __commonJS({
           offset = valueNode ? valueNode.range[2] : valueProps.end;
         }
       }
-      const expectedEnd = isMap ? "}" : "]";
+      const expectedEnd = isMap2 ? "}" : "]";
       const [ce, ...ee] = fc.end;
       let cePos = offset;
       if (ce?.source === expectedEnd)
@@ -6315,7 +6315,7 @@ var require_lexer = __commonJS({
 var require_line_counter = __commonJS({
   "node_modules/yaml/dist/parse/line-counter.js"(exports) {
     "use strict";
-    var LineCounter2 = class {
+    var LineCounter3 = class {
       constructor() {
         this.lineStarts = [];
         this.addNewLine = (offset) => this.lineStarts.push(offset);
@@ -6338,7 +6338,7 @@ var require_line_counter = __commonJS({
         };
       }
     };
-    exports.LineCounter = LineCounter2;
+    exports.LineCounter = LineCounter3;
   }
 });
 
@@ -7246,7 +7246,7 @@ var require_public_api = __commonJS({
         return docs;
       return Object.assign([], { empty: true }, composer$1.streamInfo());
     }
-    function parseDocument2(source, options = {}) {
+    function parseDocument3(source, options = {}) {
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
       const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options);
@@ -7272,7 +7272,7 @@ var require_public_api = __commonJS({
       } else if (options === void 0 && reviver && typeof reviver === "object") {
         options = reviver;
       }
-      const doc = parseDocument2(src, options);
+      const doc = parseDocument3(src, options);
       if (!doc)
         return null;
       doc.warnings.forEach((warning) => log.warn(doc.options.logLevel, warning));
@@ -7308,7 +7308,7 @@ var require_public_api = __commonJS({
     }
     exports.parse = parse4;
     exports.parseAllDocuments = parseAllDocuments;
-    exports.parseDocument = parseDocument2;
+    exports.parseDocument = parseDocument3;
     exports.stringify = stringify;
   }
 });
@@ -12866,11 +12866,11 @@ var require_validate = __commonJS({
         jsonPointer = $data;
         data = names_1.default.rootData;
       } else {
-        const matches = RELATIVE_JSON_POINTER.exec($data);
-        if (!matches)
+        const matches2 = RELATIVE_JSON_POINTER.exec($data);
+        if (!matches2)
           throw new Error(`Invalid JSON-pointer: ${$data}`);
-        const up = +matches[1];
-        jsonPointer = matches[2];
+        const up = +matches2[1];
+        jsonPointer = matches2[2];
         if (jsonPointer === "#") {
           if (up >= dataLevel)
             throw new Error(errorMsg("property/index", up));
@@ -13412,8 +13412,8 @@ var require_utils3 = __commonJS({
     var HOST_DELIMS = { "@": "%40", "/": "%2F", "?": "%3F", "#": "%23", ":": "%3A" };
     var HOST_DELIM_RE = /[@/?#:]/g;
     var HOST_DELIM_NO_COLON_RE = /[@/?#]/g;
-    function reescapeHostDelimiters(host, isIP5) {
-      const re = isIP5 ? HOST_DELIM_NO_COLON_RE : HOST_DELIM_RE;
+    function reescapeHostDelimiters(host, isIP6) {
+      const re = isIP6 ? HOST_DELIM_NO_COLON_RE : HOST_DELIM_RE;
       re.lastIndex = 0;
       return host.replace(re, (ch) => HOST_DELIMS[ch]);
     }
@@ -13757,11 +13757,11 @@ var require_schemes = __commonJS({
         urnComponent.error = "URN can not be parsed";
         return urnComponent;
       }
-      const matches = urnComponent.path.match(URN_REG);
-      if (matches && matches[0] === urnComponent.path) {
+      const matches2 = urnComponent.path.match(URN_REG);
+      if (matches2 && matches2[0] === urnComponent.path) {
         const scheme = options.scheme || urnComponent.scheme || "urn";
-        urnComponent.nid = matches[1].toLowerCase();
-        urnComponent.nss = matches[2];
+        urnComponent.nid = matches2[1].toLowerCase();
+        urnComponent.nss = matches2[2];
         const urnScheme = `${scheme}:${options.nid || urnComponent.nid}`;
         const schemeHandler = getSchemeHandler(urnScheme);
         urnComponent.path = void 0;
@@ -14075,8 +14075,8 @@ var require_fast_uri = __commonJS({
     var URI_PARSE = /^(?:([^#/:?]+):)?(?:\/\/((?:([^#/?@]*)@)?(\[[^#/?\]]+\]|[^#/:?]*)(?::(\d*))?))?([^#?]*)(?:\?([^#]*))?(?:#((?:.|[\n\r])*))?/u;
     var AUTHORITY_PREFIX = /^(?:[^#/:?]+:)?\/\/([^/?#]*)/;
     var AUTHORITY_INTRODUCER_REGION = /^(?:[^#/:?]+:)?([/\\\t\n\r]*)/;
-    function getParseError(parsed, matches) {
-      if (matches[2] !== void 0 && parsed.path && parsed.path[0] !== "/") {
+    function getParseError(parsed, matches2) {
+      if (matches2[2] !== void 0 && parsed.path && parsed.path[0] !== "/") {
         return 'URI path must start with "/" when authority is present.';
       }
       if (typeof parsed.port === "number" && (parsed.port < 0 || parsed.port > 65535)) {
@@ -14098,12 +14098,12 @@ var require_fast_uri = __commonJS({
     function isIPLiteral(host) {
       return host[0] === "[" && host[host.length - 1] === "]";
     }
-    function hasMalformedComponentPercentEncoding(matches) {
-      const host = matches[4];
-      return hasMalformedPercentEncoding(matches[3]) || host !== void 0 && !isIPLiteral(host) && hasMalformedPercentEncoding(host) || hasMalformedPercentEncoding(matches[6]) || hasMalformedPercentEncoding(matches[7]) || hasMalformedPercentEncoding(matches[8]);
+    function hasMalformedComponentPercentEncoding(matches2) {
+      const host = matches2[4];
+      return hasMalformedPercentEncoding(matches2[3]) || host !== void 0 && !isIPLiteral(host) && hasMalformedPercentEncoding(host) || hasMalformedPercentEncoding(matches2[6]) || hasMalformedPercentEncoding(matches2[7]) || hasMalformedPercentEncoding(matches2[8]);
     }
-    function canonicalizeHost(parsed, options, schemeHandler, isIP5) {
-      if (!options.unicodeSupport && (!schemeHandler || !schemeHandler.unicodeSupport) && parsed.host && !isIPLiteral(parsed.host) && (options.domainHost || schemeHandler && schemeHandler.domainHost) && isIP5 === false && nonSimpleDomain(parsed.host)) {
+    function canonicalizeHost(parsed, options, schemeHandler, isIP6) {
+      if (!options.unicodeSupport && (!schemeHandler || !schemeHandler.unicodeSupport) && parsed.host && !isIPLiteral(parsed.host) && (options.domainHost || schemeHandler && schemeHandler.domainHost) && isIP6 === false && nonSimpleDomain(parsed.host)) {
         try {
           parsed.host = new URL("http://" + parsed.host).hostname;
         } catch (e) {
@@ -14130,7 +14130,7 @@ var require_fast_uri = __commonJS({
       let malformedHost = false;
       let malformedIPLiteral = false;
       let malformedScheme = false;
-      let isIP5 = false;
+      let isIP6 = false;
       if (options.reference === "suffix") {
         if (options.scheme) {
           uri = options.scheme + ":" + uri;
@@ -14157,15 +14157,15 @@ var require_fast_uri = __commonJS({
           }
         }
       }
-      const matches = uri.match(URI_PARSE);
-      if (matches) {
-        parsed.scheme = matches[1];
-        parsed.userinfo = matches[3];
-        parsed.host = matches[4];
-        parsed.port = parseInt(matches[5], 10);
-        parsed.path = matches[6] || "";
-        parsed.query = matches[7];
-        parsed.fragment = matches[8];
+      const matches2 = uri.match(URI_PARSE);
+      if (matches2) {
+        parsed.scheme = matches2[1];
+        parsed.userinfo = matches2[3];
+        parsed.host = matches2[4];
+        parsed.port = parseInt(matches2[5], 10);
+        parsed.path = matches2[6] || "";
+        parsed.query = matches2[7];
+        parsed.fragment = matches2[8];
         if (parsed.scheme !== void 0) {
           const decodedScheme = unescape(parsed.scheme);
           if (VALID_SCHEME.test(decodedScheme)) {
@@ -14175,14 +14175,14 @@ var require_fast_uri = __commonJS({
             malformedScheme = true;
           }
         }
-        malformedPercentEncoding = hasMalformedComponentPercentEncoding(matches);
+        malformedPercentEncoding = hasMalformedComponentPercentEncoding(matches2);
         if (malformedPercentEncoding) {
           parsed.error = parsed.error || "URI contains malformed percent-encoding.";
         }
         if (isNaN(parsed.port)) {
-          parsed.port = matches[5];
+          parsed.port = matches2[5];
         }
-        const parseError = getParseError(parsed, matches);
+        const parseError = getParseError(parsed, matches2);
         if (parseError !== void 0) {
           parsed.error = parsed.error || parseError;
           malformedAuthorityOrPort = true;
@@ -14193,15 +14193,15 @@ var require_fast_uri = __commonJS({
             const bracketedIPLiteral = isIPLiteral(parsed.host);
             const hasIPLiteralBracket = parsed.host.indexOf("[") !== -1 || parsed.host.indexOf("]") !== -1;
             const ipv6result = normalizeIPv6(parsed.host);
-            isIP5 = ipv6result.isIPV6 || ipv6result.isIPVFuture === true;
+            isIP6 = ipv6result.isIPV6 || ipv6result.isIPVFuture === true;
             malformedIPLiteral = hasIPLiteralBracket && (!bracketedIPLiteral || ipv6result.error === true);
-            parsed.host = isIP5 ? ipv6result.host : ipv6result.host.toLowerCase();
+            parsed.host = isIP6 ? ipv6result.host : ipv6result.host.toLowerCase();
             if (malformedIPLiteral) {
               parsed.error = parsed.error || "URI host is malformed.";
               malformedAuthorityOrPort = true;
             }
           } else {
-            isIP5 = true;
+            isIP6 = true;
           }
         }
         if (parsed.scheme === void 0 && parsed.userinfo === void 0 && parsed.host === void 0 && parsed.port === void 0 && parsed.query === void 0 && !parsed.path) {
@@ -14218,14 +14218,14 @@ var require_fast_uri = __commonJS({
         }
         const schemeHandler = getSchemeHandler(options.scheme || parsed.scheme);
         if (!malformedIPLiteral) {
-          malformedHost = canonicalizeHost(parsed, options, schemeHandler, isIP5);
+          malformedHost = canonicalizeHost(parsed, options, schemeHandler, isIP6);
         }
         if (uri.indexOf("%") !== -1 && parsed.host !== void 0 && !malformedIPLiteral) {
-          let host = isIP5 ? parsed.host : normalizePercentEncoding(parsed.host, true);
-          if (!isIP5) {
+          let host = isIP6 ? parsed.host : normalizePercentEncoding(parsed.host, true);
+          if (!isIP6) {
             host = normalizePercentEncoding(host.toLowerCase());
           }
-          parsed.host = reescapeHostDelimiters(host, isIP5);
+          parsed.host = reescapeHostDelimiters(host, isIP6);
         }
         if (!schemeHandler || schemeHandler && !schemeHandler.skipNormalize) {
           if (parsed.path) {
@@ -17919,6 +17919,15 @@ function validateConfig(cfg, where) {
   if (c.failUnder !== void 0 && (typeof c.failUnder !== "number" || c.failUnder < 0 || c.failUnder > 100)) {
     throw new Error(`${where}: failUnder must be a number from 0 to 100`);
   }
+  const sim = c.simulate;
+  if (sim !== void 0) {
+    if (typeof sim !== "object" || Array.isArray(sim)) throw new Error(`${where}: simulate must be an object`);
+    if (sim.runs !== void 0 && !(Number.isInteger(sim.runs) && sim.runs >= 1 && sim.runs <= 20)) throw new Error(`${where}: simulate.runs must be 1-20`);
+    if (sim.minPassRate !== void 0 && !(typeof sim.minPassRate === "number" && sim.minPassRate >= 0 && sim.minPassRate <= 100)) throw new Error(`${where}: simulate.minPassRate must be 0-100`);
+    if (sim.apiKey !== void 0 || sim.key !== void 0) {
+      throw new Error(`${where}: never put a model key in the config file. Use the MUSE_READY_LLM_KEY environment variable.`);
+    }
+  }
   if (c.probe?.authHeader !== void 0 && (typeof c.probe.authHeader !== "string" || !/^[A-Za-z0-9-]+$/.test(c.probe.authHeader))) {
     throw new Error(`${where}: probe.authHeader must be a header name`);
   }
@@ -18080,7 +18089,7 @@ function connectorFrom(input2, config) {
   const fromSpec = input2.kind === "openapi" ? input2.doc?.info?.["x-muse"] ?? {} : {};
   return { ...fromSpec, ...config.connector ?? {} };
 }
-async function runRules(input2, rules, config = {}, probe) {
+async function runRules(input2, rules, config = {}, probe, simulation) {
   const ctx = { input: input2, connector: connectorFrom(input2, config), probe };
   const profile = getProfile(config.profile);
   const lineFor = makeLineLocator(input2.raw);
@@ -18136,6 +18145,7 @@ async function runRules(input2, rules, config = {}, probe) {
         ...probe.error ? { error: probe.error } : {}
       }
     } : {},
+    ...simulation ? { simulation } : {},
     results
   };
 }
@@ -29254,9 +29264,9 @@ function getResult(obj, prop, file, callback, $refs) {
   if (!callback) {
     if (value instanceof RegExp) {
       value.lastIndex = 0;
-      const matches = value.test(file.url);
+      const matches2 = value.test(file.url);
       value.lastIndex = 0;
-      return matches;
+      return matches2;
     } else if (typeof value === "string") {
       return value === file.extension;
     } else if (Array.isArray(value)) {
@@ -34138,6 +34148,15 @@ function renderMarkdown(report) {
     if (r.status === "not-applicable") continue;
     out.push(`| ${EMOJI[r.status]} | **${r.id}** ${esc(r.title)} | ${esc(r.message)} | ${r.severity} |`);
   }
+  if (report.simulation) {
+    const sim = report.simulation;
+    out.push("", "## Simulation", "", `Model \`${esc(sim.model)}\`, ${sim.runs} ${sim.runs === 1 ? "run" : "runs"} per scenario. Tool calls were answered from the spec's examples; the API was not called. **Pass rate: ${sim.passRate}%**`, "");
+    out.push("| Scenario | Request | Passed | First problem |", "|---|---|---|---|");
+    for (const s of sim.scenarios) {
+      const fail = s.runs.find((r) => !r.pass);
+      out.push(`| ${esc(s.id)} | ${esc(s.request)} | ${s.passed}/${s.runs.length} | ${fail ? esc(fail.reasons[0] ?? "") : "\u2013"} |`);
+    }
+  }
   if (report.probe) {
     out.push("", "## Live probe", "", `Target: \`${esc(report.probe.target || "none")}\`. Only read-only requests were sent.`, "");
     if (report.probe.requests.length) {
@@ -35462,6 +35481,21 @@ function renderSarif(report, cwd2 = process.cwd()) {
       ]
     }));
   });
+  if (report.simulation) {
+    const sim = report.simulation;
+    const simUri = relative(cwd2, sim.tasksFile).split("\\").join("/");
+    for (const s of sim.scenarios) {
+      const fail = s.runs.find((r) => !r.pass);
+      if (!fail) continue;
+      results.push({
+        ruleId: "SIM001",
+        ruleIndex: BUILTIN_RULES.length,
+        level: s.passed === 0 ? "error" : "warning",
+        message: { text: `Scenario "${s.id}" passed ${s.passed}/${s.runs.length} runs: ${fail.reasons.join("; ")}` },
+        locations: [{ physicalLocation: { artifactLocation: { uri: simUri }, region: { startLine: s.line ?? 1 } } }]
+      });
+    }
+  }
   return {
     $schema: "https://json.schemastore.org/sarif-2.1.0.json",
     version: "2.1.0",
@@ -35483,7 +35517,17 @@ function renderSarif(report, cwd2 = process.cwd()) {
                 tags: [r.category, "muse"],
                 ...["auth", "injection", "network"].includes(r.category) ? { "security-severity": SECURITY_SEVERITY[r.severity] } : {}
               }
-            }))
+            })).concat([
+              {
+                id: "SIM001",
+                name: "ScenarioPasses",
+                shortDescription: { text: "Simulated agent completes the scenario" },
+                fullDescription: { text: "A model acting as the agent made the calls the scenario expects, with the right arguments and no unexpected writes. Tool calls are answered from the spec's examples." },
+                helpUri: `${REPO_URL}#simulation`,
+                defaultConfiguration: { level: "warning" },
+                properties: { tags: ["simulation"] }
+              }
+            ])
           }
         },
         results
@@ -35515,6 +35559,19 @@ function renderTerminal(report, opts = {}) {
   }
   const skipped = report.results.length - shown.length;
   if (skipped) lines.push(c.dim(`${skipped} ${skipped === 1 ? "rule does" : "rules do"} not apply to this input (use --verbose to list).`));
+  if (report.simulation) {
+    const sim = report.simulation;
+    lines.push("");
+    lines.push(`${c.bold("Simulation")} ${c.dim(`${sim.model}, ${sim.runs} ${sim.runs === 1 ? "run" : "runs"} per scenario`)}`);
+    for (const s of sim.scenarios) {
+      const total = s.runs.length;
+      const status = s.passed === total ? "pass" : s.passed === 0 ? "fail" : "warn";
+      lines.push(`${paint[status](ICON[status])} ${s.id.padEnd(idWidth)}  ${s.passed}/${total}  ${c.dim(`"${s.request}"`)}`);
+      const firstFail = s.runs.find((r) => !r.pass);
+      if (firstFail) for (const reason of firstFail.reasons.slice(0, 3)) lines.push(c.dim(`  ${" ".repeat(idWidth)}    \xB7 ${reason}`));
+    }
+    lines.push(`${c.bold("Scenario pass rate")} ${sim.passRate}%`);
+  }
   if (report.probe) {
     const answered2 = report.probe.requests.filter((r) => r.status !== void 0).length;
     const authed = report.probe.requests.filter((r) => r.authenticated).length;
@@ -35933,6 +35990,428 @@ async function runProbe(input2, connector, opts = {}) {
   return result;
 }
 
+// src/sim/entry.ts
+import { readFile as readFile4 } from "node:fs/promises";
+
+// src/sim/client.ts
+import { isIP as isIP5 } from "node:net";
+var KEY_ENV = "MUSE_READY_LLM_KEY";
+var ModelError = class extends Error {
+};
+function isLocal(host) {
+  const h = host.replace(/^\[|\]$/g, "");
+  return h === "localhost" || h === "::1" || isIP5(h) === 4 && h.startsWith("127.");
+}
+function validateModelConfig(c) {
+  if (!c.model || !c.model.trim()) throw new ModelError("No model set. Pass --model or set simulate.model in the config.");
+  if (/contributor/i.test(c.model)) {
+    throw new ModelError(`Refusing model "${c.model}": contributor tiers train on your prompts, which would include your API spec.`);
+  }
+  let url;
+  try {
+    url = new URL(c.baseUrl);
+  } catch {
+    throw new ModelError("The model base URL is not a valid URL.");
+  }
+  if (url.username || url.password) throw new ModelError("Put the key in MUSE_READY_LLM_KEY, not in the base URL.");
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && isLocal(url.hostname))) {
+    throw new ModelError("The model base URL must use HTTPS unless it points at a local model on this machine.");
+  }
+}
+async function chat(c, messages, tools) {
+  validateModelConfig(c);
+  const url = c.baseUrl.replace(/\/+$/, "") + "/chat/completions";
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...c.apiKey ? { authorization: `Bearer ${c.apiKey}` } : {} },
+      body: JSON.stringify({ model: c.model, messages, tools, tool_choice: "auto", temperature: c.temperature ?? 0 }),
+      signal: AbortSignal.timeout(c.timeoutMs ?? 6e4)
+    });
+  } catch (err) {
+    const why = err.name === "TimeoutError" ? "timed out" : "could not connect";
+    throw new ModelError(`Model request ${why} (${new URL(url).host}).`);
+  }
+  if (!res.ok) {
+    throw new ModelError(`Model endpoint returned HTTP ${res.status}${res.status === 401 ? `: check ${KEY_ENV}` : ""}.`);
+  }
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new ModelError("Model endpoint returned something that is not JSON.");
+  }
+  const message = data?.choices?.[0]?.message;
+  if (!message || typeof message !== "object") throw new ModelError("Model response had no message.");
+  return { role: "assistant", content: typeof message.content === "string" ? message.content : null, tool_calls: Array.isArray(message.tool_calls) ? message.tool_calls : void 0 };
+}
+
+// src/sim/scenarios.ts
+var import_yaml4 = __toESM(require_dist(), 1);
+var ScenarioError = class extends Error {
+  constructor(problems) {
+    super(problems.join("\n"));
+    this.problems = problems;
+  }
+  problems;
+};
+var MATCHER_KEYS = /* @__PURE__ */ new Set(["equals", "contains", "matches", "present", "oneOf"]);
+function parseScenarios(text2, source = "tasks file") {
+  const counter = new import_yaml4.LineCounter();
+  const doc = (0, import_yaml4.parseDocument)(text2, { lineCounter: counter });
+  const problems = doc.errors.map((e) => `${source}: ${e.message.split("\n")[0]}`);
+  if (problems.length) throw new ScenarioError(problems);
+  const lineOf = (node) => node?.range ? counter.linePos(node.range[0]).line : void 0;
+  const at = (node) => {
+    const line = lineOf(node);
+    return line ? `${source}:${line}` : source;
+  };
+  const root = doc.toJS();
+  if (!root || typeof root !== "object") throw new ScenarioError([`${source}: expected a mapping with "version" and "scenarios"`]);
+  if (root.version !== 1) problems.push(`${at(doc.get("version", true) ?? doc.contents)}: version must be 1`);
+  const seq = doc.get("scenarios", true);
+  if (!(0, import_yaml4.isSeq)(seq) || seq.items.length === 0) throw new ScenarioError([...problems, `${at(doc.contents)}: "scenarios" must be a non-empty list`]);
+  const scenarios = [];
+  const ids = /* @__PURE__ */ new Set();
+  seq.items.forEach((item, i) => {
+    const where = at(item);
+    if (!(0, import_yaml4.isMap)(item)) {
+      problems.push(`${where}: scenario ${i + 1} must be a mapping`);
+      return;
+    }
+    const s = item.toJSON();
+    const id = typeof s.id === "string" && s.id.trim() ? s.id.trim() : void 0;
+    if (!id) problems.push(`${where}: scenario ${i + 1} needs an "id"`);
+    else if (ids.has(id)) problems.push(`${where}: duplicate scenario id "${id}"`);
+    else ids.add(id);
+    if (typeof s.request !== "string" || !s.request.trim()) problems.push(`${where}: scenario "${id ?? i + 1}" needs a "request" in plain language`);
+    const outcome = s.outcome ?? "call";
+    if (outcome !== "call" && outcome !== "ask") problems.push(`${where}: outcome must be "call" or "ask"`);
+    const calls = [];
+    if (s.calls !== void 0 && !Array.isArray(s.calls)) problems.push(`${where}: "calls" must be a list`);
+    for (const c of Array.isArray(s.calls) ? s.calls : []) {
+      if (typeof c === "string") calls.push({ operation: c });
+      else if (c && typeof c.operation === "string") {
+        for (const [name, m] of Object.entries(c.args ?? {})) {
+          if (m && typeof m === "object" && !Array.isArray(m)) {
+            const keys = Object.keys(m);
+            if (keys.length !== 1 || !MATCHER_KEYS.has(keys[0])) problems.push(`${where}: argument "${name}" uses an unknown matcher; use one of ${[...MATCHER_KEYS].join(", ")}`);
+            if ("matches" in m) {
+              try {
+                new RegExp(m.matches);
+              } catch {
+                problems.push(`${where}: argument "${name}" has an invalid regular expression`);
+              }
+            }
+          }
+        }
+        calls.push({ operation: c.operation, args: c.args });
+      } else problems.push(`${where}: each call needs an "operation"`);
+    }
+    if (outcome === "call" && calls.length === 0) problems.push(`${where}: scenario "${id ?? i + 1}" expects calls but lists none`);
+    const forbid = Array.isArray(s.forbid) ? s.forbid.map(String) : [];
+    if (id && typeof s.request === "string") {
+      scenarios.push({ id, request: s.request.trim(), outcome, calls, forbid, ordered: s.ordered === true, line: lineOf(item) });
+    }
+  });
+  if (problems.length) throw new ScenarioError(problems);
+  return { version: 1, scenarios };
+}
+function operationIndex(input2) {
+  const index = /* @__PURE__ */ new Map();
+  if (input2.kind === "mcp") {
+    for (const t of input2.tools ?? []) {
+      if (typeof t?.name !== "string") continue;
+      index.set(t.name, { label: t.name, write: t.annotations?.readOnlyHint !== true });
+    }
+    return index;
+  }
+  for (const o of operations(input2.resolved)) {
+    const entry = { label: o.label, write: !SAFE_METHODS.has(o.method) };
+    index.set(o.label, entry);
+    if (typeof o.op.operationId === "string") index.set(o.op.operationId, entry);
+  }
+  return index;
+}
+function checkAgainstSpec(file, input2, source = "tasks file") {
+  const index = operationIndex(input2);
+  const problems = [];
+  for (const s of file.scenarios) {
+    for (const op of [...s.calls.map((c) => c.operation), ...s.forbid]) {
+      if (!index.has(op) && !index.has(normalizeLabel(op))) {
+        problems.push(`${source}${s.line ? `:${s.line}` : ""}: scenario "${s.id}" refers to "${op}", which the spec does not define`);
+      }
+    }
+  }
+  return problems;
+}
+function normalizeLabel(op) {
+  const m = op.match(/^\s*([a-z]+)\s+(\/\S*)\s*$/i);
+  return m ? `${m[1].toUpperCase()} ${m[2]}` : op;
+}
+function matches(matcher, value) {
+  if (matcher === null || typeof matcher !== "object") return value === matcher || String(value) === String(matcher);
+  if ("present" in matcher) return matcher.present ? value !== void 0 && value !== null && value !== "" : value === void 0;
+  if (value === void 0) return false;
+  if ("equals" in matcher) return JSON.stringify(value) === JSON.stringify(matcher.equals) || String(value) === String(matcher.equals);
+  if ("contains" in matcher) return String(value).toLowerCase().includes(matcher.contains.toLowerCase());
+  if ("matches" in matcher) return new RegExp(matcher.matches, "i").test(String(value));
+  if ("oneOf" in matcher) return matcher.oneOf.some((v) => String(v) === String(value));
+  return false;
+}
+function grade2(s, actual, input2) {
+  const index = operationIndex(input2);
+  const label = (op) => index.get(op)?.label ?? index.get(normalizeLabel(op))?.label ?? op;
+  const calls = actual.map((c) => ({ ...c, label: label(c.operation) }));
+  const reasons = [];
+  for (const f of s.forbid) if (calls.some((c) => c.label === label(f))) reasons.push(`called forbidden ${label(f)}`);
+  if (s.outcome === "ask") {
+    const writes = calls.filter((c) => index.get(c.label)?.write ?? index.get(c.operation)?.write);
+    for (const w of writes) reasons.push(`made write call ${w.label} instead of asking first`);
+    return { pass: reasons.length === 0, reasons };
+  }
+  let cursor = 0;
+  for (const exp of s.calls) {
+    const want = label(exp.operation);
+    const candidates = calls.map((c, i) => ({ c, i })).filter(({ c, i }) => c.label === want && (!s.ordered || i >= cursor));
+    if (candidates.length === 0) {
+      reasons.push(`never called ${want}`);
+      continue;
+    }
+    const argProblems = (c) => Object.entries(exp.args ?? {}).filter(([name, m]) => !matches(m, c.args[name])).map(([name, m]) => `${want} argument "${name}" was ${JSON.stringify(c.args[name]) ?? "missing"}, expected ${JSON.stringify(m)}`);
+    const good = candidates.find(({ c }) => argProblems(c).length === 0);
+    if (good) cursor = good.i + 1;
+    else reasons.push(...argProblems(candidates[0].c));
+  }
+  const expected = new Set(s.calls.map((c) => label(c.operation)));
+  for (const c of calls) {
+    if ((index.get(c.label)?.write ?? false) && !expected.has(c.label)) reasons.push(`made unexpected write call ${c.label}`);
+  }
+  return { pass: reasons.length === 0, reasons };
+}
+
+// src/sim/tools.ts
+var MAX_DESCRIPTION = 1024;
+var MAX_DEPTH = 6;
+function cleanSchema(schema, depth = 0, seen = /* @__PURE__ */ new Set()) {
+  if (!schema || typeof schema !== "object" || depth > MAX_DEPTH || seen.has(schema)) return {};
+  seen.add(schema);
+  const s = schema;
+  const out = {};
+  for (const key of ["type", "description", "enum", "format", "default", "minimum", "maximum", "minLength", "maxLength", "pattern", "required"]) {
+    if (s[key] !== void 0) out[key] = s[key];
+  }
+  if (Array.isArray(out.type)) out.type = out.type.find((t) => t !== "null") ?? "string";
+  if (s.properties && typeof s.properties === "object") {
+    out.properties = Object.fromEntries(Object.entries(s.properties).map(([k, v]) => [k, cleanSchema(v, depth + 1, seen)]));
+    out.type ??= "object";
+  }
+  if (s.items) out.items = cleanSchema(s.items, depth + 1, seen);
+  for (const key of ["allOf", "oneOf", "anyOf"]) {
+    if (Array.isArray(s[key]) && s[key].length) Object.assign(out, cleanSchema(s[key][0], depth + 1, seen));
+  }
+  seen.delete(schema);
+  return out;
+}
+function toolName(raw, taken) {
+  let name = raw.replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 64) || "operation";
+  let n = 2;
+  while (taken.has(name)) name = `${name.slice(0, 60)}_${n++}`;
+  taken.add(name);
+  return name;
+}
+function exampleFor(schema, depth = 0, seen = /* @__PURE__ */ new Set()) {
+  if (!schema || typeof schema !== "object" || depth > 4 || seen.has(schema)) return null;
+  if (schema.example !== void 0) return schema.example;
+  if (Array.isArray(schema.examples) && schema.examples.length) return schema.examples[0];
+  if (schema.default !== void 0) return schema.default;
+  if (Array.isArray(schema.enum) && schema.enum.length) return schema.enum[0];
+  seen.add(schema);
+  const pick2 = schema.allOf?.[0] ?? schema.oneOf?.[0] ?? schema.anyOf?.[0];
+  if (pick2) return exampleFor(pick2, depth + 1, seen);
+  const type = Array.isArray(schema.type) ? schema.type.find((t) => t !== "null") : schema.type;
+  if (type === "array" || schema.items) return [exampleFor(schema.items, depth + 1, seen)];
+  if (type === "object" || schema.properties) {
+    return Object.fromEntries(Object.entries(schema.properties ?? {}).map(([k, v]) => [k, exampleFor(v, depth + 1, seen)]));
+  }
+  if (type === "integer" || type === "number") return 1;
+  if (type === "boolean") return true;
+  if (schema.format === "date-time") return "2026-09-24T12:00:00Z";
+  return "example";
+}
+function responseExample(op) {
+  const responses = op?.responses ?? {};
+  const code = Object.keys(responses).find((c) => /^2\d\d$/.test(c)) ?? "200";
+  const r = responses[code] ?? {};
+  const media = r.content?.["application/json"] ?? Object.values(r.content ?? {})[0];
+  if (media?.example !== void 0) return { status: Number(code), body: media.example };
+  if (media?.examples && typeof media.examples === "object") {
+    const first = Object.values(media.examples)[0];
+    if (first?.value !== void 0) return { status: Number(code), body: first.value };
+  }
+  const schema = successSchema(op) ?? media?.schema ?? r.schema;
+  return { status: Number(code), body: schema ? exampleFor(schema) : null };
+}
+function buildTools(input2) {
+  const taken = /* @__PURE__ */ new Set();
+  if (input2.kind === "mcp") {
+    return (input2.tools ?? []).filter((t) => typeof t?.name === "string").map((t) => ({
+      name: toolName(String(t.name), taken),
+      description: String(t.description ?? "").slice(0, MAX_DESCRIPTION),
+      parameters: { type: "object", ...cleanSchema(t.inputSchema) },
+      label: String(t.name),
+      write: t.annotations?.readOnlyHint !== true,
+      mock: () => ({ content: [{ type: "text", text: `${String(t.name)} completed (simulated).` }] })
+    }));
+  }
+  return operations(input2.resolved).map((o) => {
+    const properties = {};
+    const required = [];
+    for (const p of [...o.pathItem.parameters ?? [], ...o.op.parameters ?? []]) {
+      if (!p || typeof p.name !== "string" || p.in === "header" || p.in === "cookie") continue;
+      properties[p.name] = { ...cleanSchema(p.schema ?? { type: p.type ?? "string" }), ...p.description ? { description: p.description } : {} };
+      if (p.required || p.in === "path") required.push(p.name);
+    }
+    const body = o.op.requestBody?.content?.["application/json"]?.schema;
+    if (body) {
+      const cleaned = cleanSchema(body);
+      for (const [k, v] of Object.entries(cleaned.properties ?? {})) properties[properties[k] ? `body_${k}` : k] = v;
+      for (const r of cleaned.required ?? []) required.push(r);
+    }
+    const description = [o.op.summary, o.op.description].filter((x) => typeof x === "string" && x.trim()).join(". ").slice(0, MAX_DESCRIPTION);
+    return {
+      name: toolName(typeof o.op.operationId === "string" ? o.op.operationId : `${o.method}_${o.path}`, taken),
+      description: description || o.label,
+      parameters: { type: "object", properties, ...required.length ? { required: [...new Set(required)] } : {} },
+      label: o.label,
+      write: !SAFE_METHODS.has(o.method),
+      mock: () => o.method === "delete" && !o.op.responses?.["200"] ? { status: 204, body: null } : responseExample(o.op)
+    };
+  });
+}
+
+// src/sim/run.ts
+var DEFAULT_SYSTEM_PROMPT = "You are a personal AI agent acting for the user. Use the available tools to complete their request. If the request is ambiguous, or would delete data, spend money or send something on their behalf, you may ask the user a short question instead of acting.";
+async function runOnce(input2, scenario, o) {
+  const tools = buildTools(input2);
+  const byName = new Map(tools.map((t) => [t.name, t]));
+  const chatTools = tools.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.parameters } }));
+  const messages = [
+    { role: "system", content: o.systemPrompt },
+    { role: "user", content: scenario.request }
+  ];
+  const calls = [];
+  let turns = 0;
+  let reply;
+  try {
+    while (turns < o.maxTurns) {
+      turns++;
+      const msg = await chat(o.model, messages, chatTools);
+      messages.push(msg);
+      if (!msg.tool_calls?.length) {
+        reply = msg.content?.trim().slice(0, 300) || void 0;
+        break;
+      }
+      for (const tc of msg.tool_calls) {
+        const tool = byName.get(tc.function?.name);
+        let args = {};
+        try {
+          args = JSON.parse(tc.function?.arguments || "{}");
+        } catch {
+          args = {};
+        }
+        calls.push({ operation: tool?.label ?? String(tc.function?.name), args });
+        const answer = tool ? tool.mock() : { error: `Unknown tool ${tc.function?.name}` };
+        messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(answer) });
+      }
+    }
+  } catch (err) {
+    return { pass: false, reasons: [`simulation error: ${err.message}`], calls, turns, error: err.message };
+  }
+  const g = grade2(scenario, calls, input2);
+  const reasons = turns >= o.maxTurns && !reply ? [...g.reasons, `stopped after ${o.maxTurns} turns`] : g.reasons;
+  return { pass: g.pass && reasons.length === g.reasons.length, reasons, calls, turns, reply };
+}
+async function simulate(input2, scenarios, options) {
+  const o = { runs: options.runs ?? 3, maxTurns: options.maxTurns ?? 6, systemPrompt: options.systemPrompt ?? DEFAULT_SYSTEM_PROMPT, model: options.model };
+  const results = [];
+  for (const s of scenarios) {
+    const runs = [];
+    for (let i = 0; i < o.runs; i++) {
+      const r = await runOnce(input2, s, o);
+      runs.push(r);
+      if (r.error && i === 0 && /HTTP 40[13]|Refusing|base URL|No model/.test(r.error)) break;
+    }
+    results.push({ id: s.id, request: s.request, passed: runs.filter((r) => r.pass).length, runs });
+  }
+  const total = results.reduce((n, r) => n + r.runs.length, 0);
+  const passed = results.reduce((n, r) => n + r.passed, 0);
+  return { model: o.model.model, runs: o.runs, passRate: total ? Math.round(passed / total * 100) : 0, scenarios: results };
+}
+
+// src/sim/entry.ts
+var DEFAULT_TASKS_FILE = "muse-ready.tasks.yaml";
+var SimulationSetupError = class extends Error {
+};
+function isLocalUrl(url) {
+  try {
+    const h = new URL(url).hostname.replace(/^\[|\]$/g, "");
+    return h === "localhost" || h === "::1" || h.startsWith("127.");
+  } catch {
+    return false;
+  }
+}
+async function runSimulation(input2, config, req) {
+  const env = req.env ?? process.env;
+  const tasksFile = req.tasksFile ?? config.simulate?.tasks ?? DEFAULT_TASKS_FILE;
+  const model = req.model ?? config.simulate?.model;
+  const baseUrl = req.baseUrl ?? config.simulate?.baseUrl;
+  const apiKey = env[KEY_ENV] || void 0;
+  if (!model || !baseUrl) {
+    throw new SimulationSetupError(
+      `--simulate needs a model and an OpenAI-compatible base URL: pass --model and --model-base-url, or set simulate.model and simulate.baseUrl in the config. Put the key in ${KEY_ENV}.`
+    );
+  }
+  if (!apiKey && !isLocalUrl(baseUrl)) throw new SimulationSetupError(`--simulate needs ${KEY_ENV} set for ${new URL(baseUrl).host}.`);
+  try {
+    validateModelConfig({ baseUrl, model });
+  } catch (err) {
+    if (err instanceof ModelError) throw new SimulationSetupError(err.message);
+    throw err;
+  }
+  let text2;
+  try {
+    text2 = await readFile4(tasksFile, "utf8");
+  } catch {
+    throw new SimulationSetupError(`No scenario file at ${tasksFile}. Create one with --init-tasks ${tasksFile}.`);
+  }
+  let file;
+  try {
+    file = parseScenarios(text2, tasksFile);
+    const problems = checkAgainstSpec(file, input2, tasksFile);
+    if (problems.length) throw new ScenarioError(problems);
+  } catch (err) {
+    if (err instanceof ScenarioError) throw new SimulationSetupError(err.problems.join("\n"));
+    throw err;
+  }
+  const result = await simulate(input2, file.scenarios, { model: { baseUrl, model, apiKey }, runs: req.runs ?? config.simulate?.runs ?? 3 });
+  const lines = new Map(file.scenarios.map((s) => [s.id, s.line]));
+  return {
+    model: result.model,
+    runs: result.runs,
+    passRate: result.passRate,
+    tasksFile,
+    scenarios: result.scenarios.map((s) => ({
+      id: s.id,
+      request: s.request,
+      line: lines.get(s.id),
+      passed: s.passed,
+      runs: s.runs.map(({ error: _e, ...r }) => r)
+    }))
+  };
+}
+
 // src/action/index.ts
 var InputError = class extends Error {
 };
@@ -35981,7 +36460,15 @@ async function main(env = process.env) {
   const loaded = await loadInput(source);
   const token = env[TOKEN_ENV];
   const probe = probeRaw === "true" ? await runProbe(loaded, connectorFrom(loaded, config), { authHeaders: token ? authHeaders(token, loaded, config.probe?.authHeader) : void 0 }) : void 0;
-  const report = await runRules(loaded, BUILTIN_RULES, config, probe);
+  const simulateRaw = input(env, "simulate").toLowerCase() || "false";
+  if (!["true", "false"].includes(simulateRaw)) throw new InputError('Input "simulate" must be true or false.');
+  const simulation = simulateRaw === "true" ? await runSimulation(loaded, config, {
+    tasksFile: at(pathInput(env, "tasks-file", config.simulate?.tasks ?? "muse-ready.tasks.yaml")),
+    model: input(env, "model") || void 0,
+    baseUrl: input(env, "model-base-url") || void 0,
+    env
+  }) : void 0;
+  const report = await runRules(loaded, BUILTIN_RULES, config, probe, simulation);
   const sarifPath = resolve3(workspace, sarifFile);
   writeFileSync(sarifPath, JSON.stringify(renderSarif(report, workspace), null, 2) + "\n");
   if (badgeFile) writeFileSync(resolve3(workspace, badgeFile), JSON.stringify(renderBadge(report), null, 2) + "\n");
@@ -35990,7 +36477,8 @@ async function main(env = process.env) {
     score: String(report.score.overall),
     grade: report.score.grade,
     passed: String(report.gate.passed && (failUnder === void 0 || report.score.overall >= failUnder)),
-    "sarif-file": sarifFile
+    "sarif-file": sarifFile,
+    ...report.simulation ? { "scenario-pass-rate": String(report.simulation.passRate) } : {}
   });
   console.log(renderTerminal(report, { color: false }));
   const threshold = failUnder ?? config.failUnder;

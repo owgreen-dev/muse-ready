@@ -14,6 +14,7 @@ import { TOKEN_ENV, authHeaders } from "../probe/auth.js";
 import { runProbe } from "../probe/run.js";
 import { BUILTIN_RULES } from "../rules/index.js";
 import { getProfile } from "../core/profiles.js";
+import { runSimulation } from "../sim/entry.js";
 
 export class InputError extends Error {}
 
@@ -71,7 +72,18 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<number
     probeRaw === "true"
       ? await runProbe(loaded, connectorFrom(loaded, config), { authHeaders: token ? authHeaders(token, loaded, config.probe?.authHeader) : undefined })
       : undefined;
-  const report = await runRules(loaded, BUILTIN_RULES, config, probe);
+  const simulateRaw = input(env, "simulate").toLowerCase() || "false";
+  if (!["true", "false"].includes(simulateRaw)) throw new InputError('Input "simulate" must be true or false.');
+  const simulation =
+    simulateRaw === "true"
+      ? await runSimulation(loaded, config, {
+          tasksFile: at(pathInput(env, "tasks-file", config.simulate?.tasks ?? "muse-ready.tasks.yaml")),
+          model: input(env, "model") || undefined,
+          baseUrl: input(env, "model-base-url") || undefined,
+          env,
+        })
+      : undefined;
+  const report = await runRules(loaded, BUILTIN_RULES, config, probe, simulation);
 
   const sarifPath = resolve(workspace, sarifFile);
   writeFileSync(sarifPath, JSON.stringify(renderSarif(report, workspace), null, 2) + "\n");
@@ -82,6 +94,7 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<number
     grade: report.score.grade,
     passed: String(report.gate.passed && (failUnder === undefined || report.score.overall >= failUnder)),
     "sarif-file": sarifFile,
+    ...(report.simulation ? { "scenario-pass-rate": String(report.simulation.passRate) } : {}),
   });
 
   console.log(renderTerminal(report, { color: false }));

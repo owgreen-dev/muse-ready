@@ -11,7 +11,7 @@ export function connectorFrom(input: LoadedInput, config: Config): ConnectorMeta
   return { ...fromSpec, ...(config.connector ?? {}) };
 }
 
-export async function runRules(input: LoadedInput, rules: Rule[], config: Config = {}, probe?: ProbeResult): Promise<Report> {
+export async function runRules(input: LoadedInput, rules: Rule[], config: Config = {}, probe?: ProbeResult, simulation?: Report["simulation"]): Promise<Report> {
   const ctx: RuleContext = { input, connector: connectorFrom(input, config), probe };
   const profile = getProfile(config.profile);
   const lineFor = makeLineLocator(input.raw);
@@ -72,6 +72,7 @@ export async function runRules(input: LoadedInput, rules: Rule[], config: Config
           },
         }
       : {}),
+    ...(simulation ? { simulation } : {}),
     results,
   };
 }

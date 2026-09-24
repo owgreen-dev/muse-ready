@@ -28,6 +28,19 @@ export function renderTerminal(report: Report, opts: { color?: boolean; verbose?
   const skipped = report.results.length - shown.length;
   if (skipped) lines.push(c.dim(`${skipped} ${skipped === 1 ? "rule does" : "rules do"} not apply to this input (use --verbose to list).`));
 
+  if (report.simulation) {
+    const sim = report.simulation;
+    lines.push("");
+    lines.push(`${c.bold("Simulation")} ${c.dim(`${sim.model}, ${sim.runs} ${sim.runs === 1 ? "run" : "runs"} per scenario`)}`);
+    for (const s of sim.scenarios) {
+      const total = s.runs.length;
+      const status: Status = s.passed === total ? "pass" : s.passed === 0 ? "fail" : "warn";
+      lines.push(`${paint[status](ICON[status])} ${s.id.padEnd(idWidth)}  ${s.passed}/${total}  ${c.dim(`"${s.request}"`)}`);
+      const firstFail = s.runs.find((r) => !r.pass);
+      if (firstFail) for (const reason of firstFail.reasons.slice(0, 3)) lines.push(c.dim(`  ${" ".repeat(idWidth)}    · ${reason}`));
+    }
+    lines.push(`${c.bold("Scenario pass rate")} ${sim.passRate}%`);
+  }
   if (report.probe) {
     const answered = report.probe.requests.filter((r) => r.status !== undefined).length;
     const authed = report.probe.requests.filter((r) => r.authenticated).length;

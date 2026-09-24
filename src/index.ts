@@ -13,6 +13,8 @@ export { runProbe, type ProbeOptions } from "./probe/run.js";
 export { authHeaders, TOKEN_ENV } from "./probe/auth.js";
 export { computeScore, computeGate, grade, SEVERITY_WEIGHT, GATE_CATEGORIES } from "./core/score.js";
 export { BUILTIN_RULES } from "./rules/index.js";
+export { runSimulation, SimulationSetupError } from "./sim/entry.js";
+export { simulate, type SimulationResult } from "./sim/run.js";
 export { parseScenarios, checkAgainstSpec, grade as gradeScenario, starterScenarios, ScenarioError, type Scenario, type ScenarioFile, type ActualCall, type Grade } from "./sim/scenarios.js";
 export { PROFILES, getProfile, DEFAULT_PROFILE, type Profile } from "./core/profiles.js";
 export { renderTerminal } from "./report/terminal.js";

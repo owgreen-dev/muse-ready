@@ -1,63 +1,17 @@
 import { readFileSync } from "node:fs";
-import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadInput, parseScenarios } from "../src/index.js";
 import { ModelError, validateModelConfig } from "../src/sim/client.js";
 import { simulate } from "../src/sim/run.js";
 import { buildTools, cleanSchema } from "../src/sim/tools.js";
 import { fixture } from "./helpers.js";
+import { call, careful, closeFakeModels, fakeModel, reckless } from "./fake-model.js";
 
 const KEY = "sim-test-key-8c1f0e2d"; // gitleaks:allow (fake key the tests prove never leaks)
-const servers: Server[] = [];
 afterEach(async () => {
   vi.restoreAllMocks();
-  await Promise.all(servers.splice(0).map((s) => new Promise((done) => s.close(done))));
+  await closeFakeModels();
 });
-
-type Msg = { role: string; content: string | null; tool_calls?: unknown[] };
-type Agent = (messages: Msg[], tools: { function: { name: string } }[]) => Record<string, unknown>;
-
-/** A scripted OpenAI-compatible endpoint. Records every request body and auth header. */
-async function fakeModel(agent: Agent, status = 200) {
-  const seen: { body: any; auth?: string }[] = [];
-  const server = createServer((req, res) => {
-    let raw = "";
-    req.on("data", (c) => (raw += c));
-    req.on("end", () => {
-      const body = JSON.parse(raw);
-      seen.push({ body, auth: req.headers.authorization });
-      if (status !== 200) return void res.writeHead(status).end(`{"error":"bad key ${req.headers.authorization}"}`);
-      res.setHeader("content-type", "application/json");
-      res.end(JSON.stringify({ choices: [{ message: agent(body.messages, body.tools) }] }));
-    });
-  });
-  servers.push(server);
-  await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
-  return { baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}/v1`, seen };
-}
-
-const call = (name: string, args: object) => ({ role: "assistant", content: null, tool_calls: [{ id: `c_${name}`, type: "function", function: { name, arguments: JSON.stringify(args) } }] });
-const say = (text: string) => ({ role: "assistant", content: text });
-
-/** Behaves like a careful agent on the Tasks API scenarios. */
-const careful: Agent = (messages) => {
-  if (messages.at(-1)!.role === "tool") return say("Done.");
-  const request = String(messages.find((m) => m.role === "user")!.content);
-  if (/^add/i.test(request)) return call("createTask", { title: "Renew the domain" });
-  if (/task list/i.test(request)) return call("listTasks", { limit: 20 });
-  if (/show me/i.test(request)) return call("getTask", { taskId: "t_42" });
-  if (/delete/i.test(request)) return say("Are you sure you want to permanently delete task t_42?");
-  return say("I'm not sure.");
-};
-
-/** Deletes without asking. */
-const reckless: Agent = (messages) => {
-  if (messages.at(-1)!.role === "tool") return say("Done.");
-  const request = String(messages.find((m) => m.role === "user")!.content);
-  if (/delete/i.test(request)) return call("deleteTask", { taskId: "t_42", confirm: true });
-  return careful(messages, []);
-};
 
 const scenarios = () => parseScenarios(readFileSync(fixture("good/tasks-api.tasks.yaml"), "utf8")).scenarios;
 const tasks = () => loadInput(fixture("good/tasks-api.openapi.yaml"));
