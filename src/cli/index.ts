@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { writeFile } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
+import { ScenarioError, checkAgainstSpec, parseScenarios, starterScenarios } from "../sim/scenarios.js";
 import { Command, InvalidArgumentError, Option } from "commander";
 import { loadConfig } from "../core/config.js";
 import { connectorFrom, runRules } from "../core/engine.js";
@@ -44,6 +45,8 @@ const program = new Command()
   .option("--no-color", "disable colors")
   .option("-v, --verbose", "also list rules that do not apply")
   .option("--list-rules", "print the rule catalog and exit")
+  .option("--init-tasks <file>", "write a starter scenario file for the spec, for Readiness Pro simulation")
+  .option("--validate-tasks <file>", "check a scenario file against the spec and exit")
   .addHelpText(
     "after",
     `
@@ -118,6 +121,35 @@ async function main(): Promise<number> {
       request: opts.probeAllowPrivate ? { allowPrivateNetwork: true, allowInsecureHttp: true } : {},
     });
   }
+  if (opts.initTasks) {
+    try {
+      await access(opts.initTasks);
+      console.error(`muse-ready: ${opts.initTasks} already exists; not overwriting it.`);
+      return EXIT_ERROR;
+    } catch {
+      /* does not exist: good */
+    }
+    await writeFile(opts.initTasks, starterScenarios(input));
+    console.log(`Wrote ${opts.initTasks}. Edit the requests to sound like your users, then run --validate-tasks.`);
+    return EXIT_OK;
+  }
+  if (opts.validateTasks) {
+    try {
+      const file = parseScenarios(await readFile(opts.validateTasks, "utf8"), opts.validateTasks);
+      const problems = checkAgainstSpec(file, input, opts.validateTasks);
+      if (problems.length) throw new ScenarioError(problems);
+      console.log(`${opts.validateTasks}: ${file.scenarios.length} ${file.scenarios.length === 1 ? "scenario" : "scenarios"}, all valid against the spec.`);
+      return EXIT_OK;
+    } catch (err) {
+      if (err instanceof ScenarioError) {
+        for (const p of err.problems) console.error(p);
+        return EXIT_ERROR;
+      }
+      console.error(`muse-ready: ${(err as Error).message}`);
+      return EXIT_ERROR;
+    }
+  }
+
   const report = await runRules(input, BUILTIN_RULES, config, probe);
   const json = () => JSON.stringify(report, null, 2) + "\n";
   const sarif = () => JSON.stringify(renderSarif(report), null, 2) + "\n";

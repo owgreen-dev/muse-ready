@@ -35335,7 +35335,7 @@ var SPEC002 = {
 };
 
 // src/rules/speak001.ts
-var SPEAKABLE_FIELDS = ["summary", "title", "name", "label", "displayName", "display_name", "headline", "text", "message", "description", "subject", "status"];
+var SPEAKABLE_FIELDS = ["summary", "title", "name", "label", "displayName", "display_name", "username", "fullName", "full_name", "firstName", "first_name", "headline", "text", "message", "description", "subject", "status"];
 var MAX_SPOKEN_CHARS = 200;
 function objectSchema(schema) {
   if (!schema || typeof schema !== "object") return void 0;

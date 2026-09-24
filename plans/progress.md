@@ -116,3 +116,15 @@ All six automatable tasks pass. T-007 to T-010 are human tasks (see prd.json). S
 - Also fixed: the blocking message now names the profile's platform instead of always saying Meta.
 
 **Tests:** `test/speak.test.ts` plus the new bad fixture `speak001-no-summary`. Suite: 122 tests.
+
+## 2026-09-24 - T-103 scenario files
+
+**Changed:**
+- `src/sim/scenarios.ts` has five pieces. `parseScenarios()` reports errors with line numbers. `checkAgainstSpec()` rejects operations the spec doesn't define. `grade()` is the deterministic grader, exported as `gradeScenario`. `operationIndex()` accepts operationId, "METHOD /path" or an MCP tool name. `starterScenarios()` generates a starter with one read, one write and one confirm-first scenario.
+- Argument matchers: a plain value, `equals`, `contains`, `matches`, `present` or `oneOf`. Scenarios can also use `forbid`, `ordered` and `outcome: ask`, which fails on any write call.
+- New CLI flags `--init-tasks`, which refuses to overwrite, and `--validate-tasks`, which exits 2 on problems.
+- New example `fixtures/good/tasks-api.tasks.yaml`.
+- SPEAK001 now also recognizes username, full name and first name fields, prompted by the Petstore run.
+
+**Tests:** `test/scenarios.test.ts`. The wording test skips `*.tasks.yaml`. Suite: 131 tests.
+**Next:** T-104, the simulator core. It needs H-101, adding `src/sim/` to `networkAllowedFiles`, before any model client code can pass the audit.

@@ -3,7 +3,7 @@ import { operations, successSchema } from "../core/openapi.js";
 import { aggregate, plural } from "./util.js";
 
 /** Field names an agent can read aloud as a one-line answer. */
-export const SPEAKABLE_FIELDS = ["summary", "title", "name", "label", "displayName", "display_name", "headline", "text", "message", "description", "subject", "status"];
+export const SPEAKABLE_FIELDS = ["summary", "title", "name", "label", "displayName", "display_name", "username", "fullName", "full_name", "firstName", "first_name", "headline", "text", "message", "description", "subject", "status"];
 /** Provisional: roughly one spoken sentence. Muse publishes no limit. */
 export const MAX_SPOKEN_CHARS = 200;
 

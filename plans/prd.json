@@ -57,8 +57,9 @@
         "Documented in README with an example for the Tasks fixture",
         "bash scripts/verify.sh passes"
       ],
-      "passes": false,
-      "notes": "Deterministic grading lives here: the LLM proposes calls, and plain code checks them against these expectations."
+      "passes": true,
+      "notes": "Deterministic grading lives here: the LLM proposes calls, and plain code checks them against these expectations.",
+      "completed_at": "2026-09-24T16:30:46-04:00"
     },
     {
       "id": "T-104",

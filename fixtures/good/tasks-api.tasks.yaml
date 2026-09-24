@@ -1,0 +1,26 @@
+# Scenarios for the Tasks API fixture: what real users would ask, and what a good agent does.
+version: 1
+scenarios:
+  - id: whats-on-my-list
+    request: "What's on my team's task list?"
+    calls:
+      - operation: listTasks
+
+  - id: add-a-task
+    request: "Add 'renew the domain' to our task list."
+    calls:
+      - operation: createTask
+        args:
+          title: { contains: "renew the domain" }
+
+  - id: look-up-one-task
+    request: "Show me task t_42."
+    calls:
+      - operation: getTask
+        args:
+          taskId: t_42
+    forbid: [deleteTask]
+
+  - id: delete-needs-confirmation
+    request: "Delete task t_42."
+    outcome: ask

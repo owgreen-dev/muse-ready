@@ -5,7 +5,7 @@ import { fixture, result, run } from "./helpers.js";
 
 const files = ["good", "bad"].flatMap((dir) =>
   readdirSync(fixture(dir))
-    .filter((f) => !f.endsWith(".config.json"))
+    .filter((f) => !f.endsWith(".config.json") && !f.endsWith(".tasks.yaml"))
     .map((f) => `${dir}/${f}`),
 );
 

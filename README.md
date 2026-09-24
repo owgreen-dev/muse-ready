@@ -119,6 +119,33 @@ MUSE_READY_TOKEN=... npx muse-ready openapi.yaml --probe
 
 `--probe-allow-private` lifts the private-address and HTTPS restrictions so you can test an API on your own machine. Don't use it in CI.
 
+## Scenarios (Readiness Pro, in progress)
+
+Rules check what a spec looks like. Scenarios check whether an agent can actually use it. A scenario file lists plain-language requests your users would make and the calls a good agent should respond with:
+
+```yaml
+version: 1
+scenarios:
+  - id: add-a-task
+    request: "Add 'renew the domain' to our task list."
+    calls:
+      - operation: createTask            # operationId, "POST /tasks", or an MCP tool name
+        args:
+          title: { contains: "renew the domain" }
+  - id: delete-needs-confirmation
+    request: "Delete task t_42."
+    outcome: ask                          # pass only if the agent makes no write call
+```
+
+Argument matchers are a plain value, `equals`, `contains`, `matches` (a regular expression), `present` or `oneOf`. A scenario can also `forbid` operations and require its calls to be `ordered`. Grading is plain code, not a model, so results are reproducible.
+
+```sh
+npx muse-ready openapi.yaml --init-tasks muse-ready.tasks.yaml       # starter: one read, one write, one confirm-first
+npx muse-ready openapi.yaml --validate-tasks muse-ready.tasks.yaml   # check it against the spec
+```
+
+Running scenarios against a model (`--simulate`) is next. It will answer the agent's calls from your spec's examples and never call your API.
+
 ## Other agent platforms
 
 The same checks can target other agents. A profile turns rules on or off and changes their severity where the platforms genuinely differ, and each difference cites its source:
