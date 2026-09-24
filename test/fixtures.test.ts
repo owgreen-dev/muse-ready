@@ -48,6 +48,7 @@ const cases: [string, string, "fail" | "warn", string][] = [
   ["bad/net001-localhost.openapi.yaml", "NET001", "fail", "http://localhost:3000"],
   ["bad/net001-localhost.openapi.yaml", "NET001", "fail", "192.168.1.20"],
   ["bad/meta001-no-listing.openapi.yaml", "META001", "fail", "privacy policy"],
+  ["bad/speak001-no-summary.openapi.yaml", "SPEAK001", "warn", "no summary, title or name field"],
 ];
 
 describe("bad fixtures", () => {

@@ -35334,6 +35334,84 @@ var SPEC002 = {
   }
 };
 
+// src/rules/speak001.ts
+var SPEAKABLE_FIELDS = ["summary", "title", "name", "label", "displayName", "display_name", "headline", "text", "message", "description", "subject", "status"];
+var MAX_SPOKEN_CHARS = 200;
+function objectSchema(schema) {
+  if (!schema || typeof schema !== "object") return void 0;
+  if (schema.type === "array" || schema.items) return objectSchema(schema.items);
+  if (schema.properties) {
+    for (const key of ["items", "data", "results", "records", "entries"]) {
+      const inner = schema.properties[key];
+      if (inner && (inner.items || inner.properties)) return objectSchema(inner);
+    }
+    return schema;
+  }
+  for (const key of ["allOf", "oneOf", "anyOf"]) if (Array.isArray(schema[key])) return objectSchema(schema[key][0]);
+  return void 0;
+}
+function hasSpeakableProperty(schema) {
+  const obj = objectSchema(schema);
+  if (!obj?.properties) return void 0;
+  return Object.keys(obj.properties).some((k) => SPEAKABLE_FIELDS.includes(k));
+}
+function speakableValue(body) {
+  let node = body;
+  if (Array.isArray(node)) node = node[0];
+  if (node && typeof node === "object" && !Array.isArray(node)) {
+    for (const key of ["items", "data", "results", "records", "entries"]) {
+      if (Array.isArray(node[key])) {
+        node = node[key][0];
+        break;
+      }
+    }
+  }
+  if (!node || typeof node !== "object") return typeof node === "string" ? node.length <= MAX_SPOKEN_CHARS ? node : null : void 0;
+  const strings = Object.entries(node).filter(([, v]) => typeof v === "string");
+  if (strings.length === 0) return null;
+  const preferred = strings.find(([k, v]) => SPEAKABLE_FIELDS.includes(k) && v.length > 0 && v.length <= MAX_SPOKEN_CHARS);
+  return preferred ? preferred[1] : null;
+}
+var SPEAK001 = {
+  id: "SPEAK001",
+  title: "Responses include something short enough to say aloud",
+  category: "description",
+  severity: "medium",
+  subscores: ["custom"],
+  appliesTo: ["openapi"],
+  rationale: "Muse answers by voice, on Ray-Ban glasses and on the Charm device (Meta Connect, 23 Sep 2026). A result needs a short name, title or summary the agent can speak, not only IDs and nested data. The 200-character limit is provisional; Meta publishes none. The live part runs with --probe.",
+  run(ctx) {
+    const fails = [];
+    const warns = [];
+    let checked = 0;
+    for (const o of operations(ctx.input.resolved)) {
+      if (o.method !== "get") continue;
+      const has = hasSpeakableProperty(successSchema(o.op));
+      if (has === void 0) continue;
+      checked++;
+      if (!has) warns.push({ message: `${o.label} returns objects with no summary, title or name field to read aloud`, pointer: [...o.pointer, "responses"] });
+    }
+    for (const r of ctx.probe?.requests ?? []) {
+      if (!r.bodySample || r.status === void 0 || r.status >= 300 || !r.operation) continue;
+      let body;
+      try {
+        body = JSON.parse(r.bodySample);
+      } catch {
+        continue;
+      }
+      checked++;
+      if (speakableValue(body) === null) warns.push({ message: `${r.operation} (live) returned no field under ${MAX_SPOKEN_CHARS} characters that could be read aloud` });
+    }
+    if (checked === 0) return { status: "not-applicable", message: "No documented JSON response objects to check." };
+    const unique = [...new Map(warns.map((f) => [f.message, f])).values()];
+    return aggregate(fails, unique, {
+      pass: `${plural(checked, "response")} checked; each has a short field an agent can say aloud.`,
+      fail: "",
+      warn: `${plural(unique.length, "response")} would be hard to answer by voice.`
+    });
+  }
+};
+
 // src/rules/index.ts
 var BUILTIN_RULES = [
   SPEC001,
@@ -35341,6 +35419,7 @@ var BUILTIN_RULES = [
   MCP001,
   MCP002,
   DESC001,
+  SPEAK001,
   AUTH001,
   AUTH002,
   SCOPE001,
@@ -35449,7 +35528,7 @@ function renderTerminal(report, opts = {}) {
   ].filter(Boolean);
   lines.push(`${c.bold("Readiness")} ${gradeColor(c.bold(`${score.overall}/100 ${score.grade}`))}  ${c.dim(sub.join(" \xB7 "))}`);
   lines.push(
-    gate.passed ? c.green("No blocking failures in auth, injection or network.") : c.red(`Blocked by ${gate.blocking.join(", ")}. Fix these before submitting to Meta.`)
+    gate.passed ? c.green("No blocking failures in auth, injection or network.") : c.red(`Blocked by ${gate.blocking.join(", ")}. Fix these before submitting to ${report.profile.title}.`)
   );
   return lines.join("\n");
 }

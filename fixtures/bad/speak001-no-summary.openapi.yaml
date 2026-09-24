@@ -1,0 +1,22 @@
+# SPEAK001: order objects carry only IDs and numbers, nothing an agent can say aloud.
+openapi: 3.1.0
+info: { title: Ledger API, version: "1" }
+servers: [{ url: "https://api.example.com" }]
+paths:
+  /orders:
+    get:
+      operationId: listOrders
+      summary: List recent orders for the account
+      responses:
+        "200":
+          description: Orders.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    amount_cents: { type: integer }
+                    created_at: { type: string, format: date-time }

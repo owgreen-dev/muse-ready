@@ -20,11 +20,12 @@ import { SCOPE002 } from "./scope002.js";
 import { SCOPE003 } from "./scope003.js";
 import { SPEC001 } from "./spec001.js";
 import { SPEC002 } from "./spec002.js";
+import { SPEAK001 } from "./speak001.js";
 
 /** Built-in rules in report order. */
 export const BUILTIN_RULES: Rule[] = [
   SPEC001, SPEC002, MCP001, MCP002,
-  DESC001,
+  DESC001, SPEAK001,
   AUTH001, AUTH002,
   SCOPE001, SCOPE002, SCOPE003, IDEM001,
   INJ001,

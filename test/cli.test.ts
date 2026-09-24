@@ -99,6 +99,6 @@ describe("cli", () => {
 
   it("lists rules", async () => {
     const { stdout } = await runCli(["--list-rules"]);
-    expect(stdout.trim().split("\n")).toHaveLength(21);
+    expect(stdout.trim().split("\n")).toHaveLength(22);
   });
 });

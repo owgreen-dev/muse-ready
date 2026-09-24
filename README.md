@@ -184,6 +184,7 @@ console.log(report.score.overall, report.gate.passed);
 | [MCP001](#mcp001) | MCP tool definitions are well-formed | high | mcp | directory, custom |
 | [MCP002](#mcp002) | MCP tools declare a human-readable title | medium | mcp | directory |
 | [DESC001](#desc001) | Every operation or tool is described | high | openapi, mcp | directory, custom |
+| [SPEAK001](#speak001) | Responses include something short enough to say aloud | medium | openapi | custom |
 | [AUTH001](#auth001) | Accepts a static bearer token or API-key header | critical | openapi, mcp | directory, custom |
 | [AUTH002](#auth002) | OAuth setup is workable for an agent | high | openapi, mcp | custom |
 | [SCOPE001](#scope001) | Read operations have no side effects | high | openapi, mcp | directory, custom |
@@ -220,6 +221,10 @@ console.log(report.score.overall, report.gate.passed);
 ### DESC001
 
 **Every operation or tool is described.** The agent picks which call to make from names and descriptions alone. Missing or one-word descriptions cause wrong or skipped calls.
+
+### SPEAK001
+
+**Responses include something short enough to say aloud.** Muse answers by voice, on Ray-Ban glasses and on the Charm device (Meta Connect, 23 Sep 2026). A result needs a short name, title or summary the agent can speak, not only IDs and nested data. The 200-character limit is provisional; Meta publishes none. The live part runs with --probe.
 
 ### AUTH001
 

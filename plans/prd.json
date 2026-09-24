@@ -42,8 +42,9 @@
         "Passing and failing cases in tests; good fixtures still pass; README catalog regenerated",
         "bash scripts/verify.sh passes"
       ],
-      "passes": false,
-      "notes": "base.md idea #21."
+      "passes": true,
+      "notes": "base.md idea #21.",
+      "completed_at": "2026-09-24T16:28:05-04:00"
     },
     {
       "id": "T-103",

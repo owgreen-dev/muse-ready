@@ -44,7 +44,7 @@ export function renderTerminal(report: Report, opts: { color?: boolean; verbose?
   lines.push(
     gate.passed
       ? c.green("No blocking failures in auth, injection or network.")
-      : c.red(`Blocked by ${gate.blocking.join(", ")}. Fix these before submitting to Meta.`),
+      : c.red(`Blocked by ${gate.blocking.join(", ")}. Fix these before submitting to ${report.profile.title}.`),
   );
   return lines.join("\n");
 }

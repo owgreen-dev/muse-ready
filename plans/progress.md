@@ -107,3 +107,12 @@ All six automatable tasks pass. T-007 to T-010 are human tasks (see prd.json). S
 - Gemini CLI: its docs/tools/mcp-server.md. OAuth discovery or headers.
 
 **Tests:** `test/profiles.test.ts`. The OAuth-only fixture blocks under muse and passes AUTH001 under claude. Suite: 118 tests.
+
+## 2026-09-24 - T-102 SPEAK001 speakable responses
+
+**Changed:**
+- `src/rules/speak001.ts` checks two things. Statically, GET response objects (unwrapping arrays and `items`/`data` wrappers) must have a summary, title, name or similar field. Live, with `--probe`, a sampled 2xx JSON body must have such a field under 200 characters.
+- The 200-character limit is provisional.
+- Also fixed: the blocking message now names the profile's platform instead of always saying Meta.
+
+**Tests:** `test/speak.test.ts` plus the new bad fixture `speak001-no-summary`. Suite: 122 tests.
