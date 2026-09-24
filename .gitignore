@@ -1,6 +1,6 @@
 base.md
 node_modules
-dist/
+/dist/
 coverage/
 *.log
 .DS_Store
