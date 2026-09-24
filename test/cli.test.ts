@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { fixture, root } from "./helpers.js";
 
 const exec = promisify(execFile);
@@ -19,9 +19,6 @@ async function runCli(args: string[]): Promise<{ code: number; stdout: string; s
 }
 
 describe("cli", () => {
-  beforeAll(async () => {
-    await exec("npx", ["tsc", "-p", "tsconfig.build.json"], { cwd: root });
-  }, 120_000);
 
   it("exits 0 for a ready spec and prints the score", async () => {
     const { code, stdout } = await runCli([fixture("good/tasks-api.openapi.yaml"), "--no-color"]);

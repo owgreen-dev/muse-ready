@@ -5,7 +5,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { authHeaders, check, loadInput, validateConfig } from "../src/index.js";
 import { root } from "./helpers.js";
 
@@ -59,9 +59,6 @@ async function runCli(args: string[], env: Record<string, string> = {}) {
 }
 
 describe("authenticated probing", () => {
-  beforeAll(async () => {
-    await exec("npx", ["tsc", "-p", "tsconfig.build.json"], { cwd: root });
-  }, 120_000);
 
   it("reads the token only from MUSE_READY_TOKEN and attaches it only to secured operations", async () => {
     const api = await serve((req, res) => res.end(req.headers.authorization ? '{"id":1}' : "{}"));

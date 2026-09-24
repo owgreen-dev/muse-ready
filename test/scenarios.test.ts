@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ScenarioError, checkAgainstSpec, gradeScenario as grade, loadInput, parseScenarios, starterScenarios } from "../src/index.js";
 import { fixture, root } from "./helpers.js";
 
@@ -93,9 +93,6 @@ describe("starter files", () => {
   });
 
   describe("CLI", () => {
-    beforeAll(async () => {
-      await exec("npx", ["tsc", "-p", "tsconfig.build.json"], { cwd: root });
-    }, 120_000);
     const cli = (args: string[]) =>
       exec("node", [join(root, "dist/cli/index.js"), ...args], { cwd: root }).then(
         (r) => ({ code: 0, ...r }),
