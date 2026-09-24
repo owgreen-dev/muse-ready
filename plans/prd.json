@@ -27,8 +27,9 @@
         "Tests: the same fixture scores differently under muse and claude for the documented reasons; unknown profile names are rejected",
         "bash scripts/verify.sh passes"
       ],
-      "passes": false,
-      "notes": "base.md: make the checker multi-target with the Muse ruleset as one plugin; this is the hedge if Meta ships its own validator."
+      "passes": true,
+      "notes": "base.md: make the checker multi-target with the Muse ruleset as one plugin; this is the hedge if Meta ships its own validator.",
+      "completed_at": "2026-09-24T16:26:42-04:00"
     },
     {
       "id": "T-102",
@@ -91,7 +92,9 @@
       "id": "H-101",
       "title": "Human: allow network access from src/sim/ in security/policy.json",
       "priority": "high",
-      "acceptanceCriteria": ["networkAllowedFiles includes src/sim/"],
+      "acceptanceCriteria": [
+        "networkAllowedFiles includes src/sim/"
+      ],
       "passes": false,
       "skip": true,
       "skipReason": "security/policy.json is human-owned.",
@@ -101,7 +104,10 @@
       "id": "H-102",
       "title": "Human: choose the simulated-agent model and get a key",
       "priority": "high",
-      "acceptanceCriteria": ["Model decided", "Key available as MUSE_READY_LLM_KEY locally"],
+      "acceptanceCriteria": [
+        "Model decided",
+        "Key available as MUSE_READY_LLM_KEY locally"
+      ],
       "passes": false,
       "skip": true,
       "skipReason": "Needs an account and billing decision.",
@@ -111,7 +117,10 @@
       "id": "H-103",
       "title": "Human: launch the free checker (Show HN, r/MuseAgent, X) and run it on ~20 public connector repos",
       "priority": "medium",
-      "acceptanceCriteria": ["Posts published", "Results collected"],
+      "acceptanceCriteria": [
+        "Posts published",
+        "Results collected"
+      ],
       "passes": false,
       "skip": true,
       "skipReason": "Outward-facing posts need the user's approval.",

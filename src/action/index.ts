@@ -13,6 +13,7 @@ import { renderTerminal } from "../report/terminal.js";
 import { TOKEN_ENV, authHeaders } from "../probe/auth.js";
 import { runProbe } from "../probe/run.js";
 import { BUILTIN_RULES } from "../rules/index.js";
+import { getProfile } from "../core/profiles.js";
 
 export class InputError extends Error {}
 
@@ -59,7 +60,10 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<number
   if (!["true", "false"].includes(probeRaw)) throw new InputError('Input "probe" must be true or false.');
 
   const at = (p: string) => (/^https?:\/\//i.test(p) ? p : resolve(workspace, p));
-  const config = await loadConfig(configPath ? at(configPath) : undefined, workspace);
+  const loadedConfig = await loadConfig(configPath ? at(configPath) : undefined, workspace);
+  const profileInput = input(env, "profile");
+  const config = profileInput ? { ...loadedConfig, profile: profileInput } : loadedConfig;
+  getProfile(config.profile); // fails fast on an unknown profile
   const source = at(spec);
   const loaded = await loadInput(source);
   const token = env[TOKEN_ENV];

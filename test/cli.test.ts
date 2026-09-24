@@ -88,8 +88,17 @@ describe("cli", () => {
     }
   });
 
+  it("--profile changes the target platform and --list-profiles explains them", async () => {
+    const { stdout } = await runCli([fixture("bad/auth001-oauth-only.openapi.yaml"), "--profile", "claude", "--no-color"]);
+    expect(stdout).toContain("profile claude");
+    expect(stdout).not.toContain("AUTH001");
+    const listed = await runCli(["--list-profiles"]);
+    for (const p of ["muse", "claude", "openai-apps", "gemini", "mcp"]) expect(listed.stdout).toContain(p);
+    expect((await runCli([fixture("good/tasks-api.openapi.yaml"), "--profile", "nope"])).code).not.toBe(0);
+  });
+
   it("lists rules", async () => {
     const { stdout } = await runCli(["--list-rules"]);
-    expect(stdout.trim().split("\n")).toHaveLength(20);
+    expect(stdout.trim().split("\n")).toHaveLength(21);
   });
 });

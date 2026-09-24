@@ -11,6 +11,10 @@ inputs:
   config:
     description: Path to a muse-ready config file. Defaults to muse-ready.config.{json,yaml,yml} in the workspace.
     required: false
+  profile:
+    description: Target platform - muse (default), claude, openai-apps, gemini or mcp.
+    required: false
+    default: muse
   fail-under:
     description: Fail the step when the overall score is below this (0-100).
     required: false

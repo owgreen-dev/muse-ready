@@ -119,6 +119,26 @@ MUSE_READY_TOKEN=... npx muse-ready openapi.yaml --probe
 
 `--probe-allow-private` lifts the private-address and HTTPS restrictions so you can test an API on your own machine. Don't use it in CI.
 
+## Other agent platforms
+
+The same checks can target other agents. A profile turns rules on or off and changes their severity where the platforms genuinely differ, and each difference cites its source:
+
+```sh
+npx muse-ready tools.json --profile claude       # Claude connectors directory
+npx muse-ready tools.json --profile openai-apps  # ChatGPT Apps SDK
+npx muse-ready --list-profiles                   # every override and why
+```
+
+| Profile | Main differences from `muse` |
+|---|---|
+| `muse` (default) | Needs a long-lived static token; OAuth-only fails |
+| `claude` | OAuth expected; every tool needs a title and a read-only or destructive annotation |
+| `openai-apps` | OAuth 2.1 with client registration expected; static tokens aren't the path |
+| `gemini` | OAuth or static headers both fine; no directory listing checks |
+| `mcp` | Generic MCP spec: OAuth recommended, static headers accepted |
+
+Set `profile` in the config file, or use the `profile` input in the Action. Your own `rules` settings still win.
+
 ## Configuration
 
 Put `muse-ready.config.json` (or `.yaml`) in the directory you run from, or pass `--config`. See [`muse-ready.config.example.json`](muse-ready.config.example.json).
@@ -162,6 +182,7 @@ console.log(report.score.overall, report.gate.passed);
 | [SPEC001](#spec001) | OpenAPI document is valid | high | openapi | directory, custom |
 | [SPEC002](#spec002) | Uses OpenAPI 3.1 | medium | openapi | custom |
 | [MCP001](#mcp001) | MCP tool definitions are well-formed | high | mcp | directory, custom |
+| [MCP002](#mcp002) | MCP tools declare a human-readable title | medium | mcp | directory |
 | [DESC001](#desc001) | Every operation or tool is described | high | openapi, mcp | directory, custom |
 | [AUTH001](#auth001) | Accepts a static bearer token or API-key header | critical | openapi, mcp | directory, custom |
 | [AUTH002](#auth002) | OAuth setup is workable for an agent | high | openapi, mcp | custom |
@@ -191,6 +212,10 @@ console.log(report.score.overall, report.gate.passed);
 ### MCP001
 
 **MCP tool definitions are well-formed.** The MCP spec requires each tool to have a unique name and an object inputSchema. Clients reject or mis-route malformed tools.
+
+### MCP002
+
+**MCP tools declare a human-readable title.** Anthropic's Connectors Directory requires a title on every tool, and clients use it to show people what the agent is doing. Off in the Muse profile, which publishes no such requirement.
 
 ### DESC001
 

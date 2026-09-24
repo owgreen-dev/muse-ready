@@ -6,6 +6,8 @@ import type { ConnectorMeta, Severity } from "./types.js";
 export type RuleSetting = "off" | Severity;
 
 export interface Config {
+  /** Target platform: muse (default), claude, openai-apps, gemini or mcp. */
+  profile?: string;
   /** Turn a rule off or change its severity, keyed by rule ID. */
   rules?: Record<string, RuleSetting>;
   connector?: ConnectorMeta;
@@ -34,6 +36,7 @@ export function validateConfig(cfg: unknown, where: string): Config {
       throw new Error(`${where}: rules.${id} must be one of off, critical, high, medium, low`);
     }
   }
+  if (c.profile !== undefined && typeof c.profile !== "string") throw new Error(`${where}: profile must be a string`);
   if (c.failUnder !== undefined && (typeof c.failUnder !== "number" || c.failUnder < 0 || c.failUnder > 100)) {
     throw new Error(`${where}: failUnder must be a number from 0 to 100`);
   }

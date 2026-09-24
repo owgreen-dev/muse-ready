@@ -12,6 +12,7 @@ import { renderMarkdown } from "../report/markdown.js";
 import { renderSarif } from "../report/sarif.js";
 import { renderTerminal } from "../report/terminal.js";
 import { BUILTIN_RULES } from "../rules/index.js";
+import { PROFILES, getProfile } from "../core/profiles.js";
 
 const EXIT_OK = 0;
 const EXIT_FAILED = 1;
@@ -33,6 +34,8 @@ const program = new Command()
   .option("--md <file>", "also write a Markdown report to a file")
   .option("--sarif <file>", "also write SARIF for GitHub code scanning to a file")
   .option("--badge <file>", "also write shields.io endpoint JSON for a README badge")
+  .addOption(new Option("-p, --profile <profile>", "target platform").choices(Object.keys(PROFILES)))
+  .option("--list-profiles", "print the platform profiles and how they change the rules, then exit")
   .addOption(new Option("--kind <kind>", "input type, if auto-detection guesses wrong").choices(["openapi", "mcp"]))
   .option("-c, --config <file>", "config file (default: muse-ready.config.{json,yaml,yml} in the current directory)")
   .option("--fail-under <score>", "exit 1 when the overall score is below this", score)
@@ -65,6 +68,13 @@ async function main(): Promise<number> {
     }
     return EXIT_OK;
   }
+  if (opts.listProfiles) {
+    for (const p of Object.values(PROFILES)) {
+      console.log(`${p.id.padEnd(12)} ${p.title}: ${p.description}`);
+      for (const [rule, setting] of Object.entries(p.rules)) console.log(`${"".padEnd(12)}   ${rule} ${setting}: ${p.reasons[rule] ?? ""}`);
+    }
+    return EXIT_OK;
+  }
   if (!source) {
     program.help({ error: true });
   }
@@ -74,6 +84,14 @@ async function main(): Promise<number> {
     config = await loadConfig(opts.config);
   } catch (err) {
     console.error(`muse-ready: bad config: ${(err as Error).message}`);
+    return EXIT_ERROR;
+  }
+
+  if (opts.profile) config = { ...config, profile: opts.profile };
+  try {
+    getProfile(config.profile);
+  } catch (err) {
+    console.error(`muse-ready: ${(err as Error).message}`);
     return EXIT_ERROR;
   }
 

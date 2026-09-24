@@ -10,7 +10,7 @@ export function renderTerminal(report: Report, opts: { color?: boolean; verbose?
   const lines: string[] = [];
   const { input, score, gate } = report;
 
-  lines.push(c.bold(`muse-ready ${report.tool.version}`) + c.dim(`  ruleset ${report.tool.rulesetDate}`));
+  lines.push(c.bold(`muse-ready ${report.tool.version}`) + c.dim(`  ruleset ${report.tool.rulesetDate}  profile ${report.profile.id}`));
   lines.push(
     input.title
       ? `${input.title}${input.version ? ` v${input.version}` : ""} ${c.dim(`(${input.kind}, ${input.source})`)}`

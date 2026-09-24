@@ -49,6 +49,7 @@ export interface McpTool {
   description?: unknown;
   inputSchema?: unknown;
   annotations?: {
+    title?: unknown;
     readOnlyHint?: unknown;
     destructiveHint?: unknown;
     idempotentHint?: unknown;
@@ -141,6 +142,7 @@ export interface Score {
 
 export interface Report {
   tool: { name: string; version: string; rulesetDate: string };
+  profile: { id: string; title: string };
   generatedAt: string;
   input: { source: string; kind: InputKind; title?: string; version?: string };
   score: Score;

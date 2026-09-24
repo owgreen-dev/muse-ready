@@ -1,5 +1,6 @@
 import type { Config } from "./config.js";
 import { makeLineLocator } from "./lines.js";
+import { getProfile } from "./profiles.js";
 import { computeGate, computeScore } from "./score.js";
 import type { ConnectorMeta, LoadedInput, ProbeResult, Report, Rule, RuleContext, RuleResult } from "./types.js";
 import { RULESET_DATE, TOOL_NAME, TOOL_VERSION } from "./version.js";
@@ -12,11 +13,13 @@ export function connectorFrom(input: LoadedInput, config: Config): ConnectorMeta
 
 export async function runRules(input: LoadedInput, rules: Rule[], config: Config = {}, probe?: ProbeResult): Promise<Report> {
   const ctx: RuleContext = { input, connector: connectorFrom(input, config), probe };
+  const profile = getProfile(config.profile);
   const lineFor = makeLineLocator(input.raw);
   const results: RuleResult[] = [];
 
   for (const rule of rules) {
-    const setting = config.rules?.[rule.id];
+    // The user's own config wins over the profile, which wins over the rule's default.
+    const setting = config.rules?.[rule.id] ?? profile.rules[rule.id];
     if (setting === "off") continue;
     const severity = setting ?? rule.severity;
     const base = {
@@ -48,6 +51,7 @@ export async function runRules(input: LoadedInput, rules: Rule[], config: Config
   const info = input.kind === "openapi" ? input.doc?.info : undefined;
   return {
     tool: { name: TOOL_NAME, version: TOOL_VERSION, rulesetDate: RULESET_DATE },
+    profile: { id: profile.id, title: profile.title },
     generatedAt: new Date().toISOString(),
     input: {
       source: input.source,

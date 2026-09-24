@@ -92,3 +92,18 @@ The README gains a GitHub Action section explaining why each permission is neede
 ## Status after T-006
 
 All six automatable tasks pass. T-007 to T-010 are human tasks (see prd.json). Suggested policy change for a human: raise `minimumTestCount` in `security/policy.json` from 52 to 111 so the suite can't quietly shrink.
+
+## 2026-09-24 - T-101 agent profiles
+
+**Changed:**
+- `src/core/profiles.ts` holds five profiles as data: rule settings plus a reason for each, and the source where one exists.
+- The engine applies the rule default, then the profile, then the user's config.
+- `Report.profile` is new. There's a `--profile` flag, a `--list-profiles` flag, a `profile:` config key and a `profile` input on the Action.
+- New rule `MCP002`: tools have a title. It's required by the Claude directory and off for Muse.
+
+**Sources:**
+- Claude directory: claude.com/docs/connectors/building/submission. OAuth for authenticated services, a title plus a read-only or destructive annotation on every tool.
+- OpenAI Apps: developers.openai.com/plugins/build/auth. OAuth 2.1 with DCR or CIMD.
+- Gemini CLI: its docs/tools/mcp-server.md. OAuth discovery or headers.
+
+**Tests:** `test/profiles.test.ts`. The OAuth-only fixture blocks under muse and passes AUTH001 under claude. Suite: 118 tests.
