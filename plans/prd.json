@@ -1,170 +1,121 @@
 {
   "repo": "owgreen-dev/muse-ready",
-  "goal": "v0.2.0: live probe mode and a GitHub Action, built behind a security gate that every iteration must pass.",
-  "branchName": "ralph/v0.2-probe-action",
-  "gate": "bash scripts/verify.sh (typecheck, tests, build, 11-check security audit). Run by scripts/ralph/ralph.sh itself; cannot be changed from this file.",
+  "goal": "v0.3.0 Readiness Pro foundation: agent-agnostic profiles plus a --simulate harness that measures whether an AI agent picks the right operation with the right arguments for real user tasks, without calling the user's API.",
+  "branchName": "ralph/v0.3-readiness-pro",
+  "gate": "bash scripts/verify.sh (typecheck, tests, build, security audit). Unchanged from v0.2.",
+  "decision": "2026-09-24: focus on Readiness Pro (base.md top idea). The done-for-you service is parked on branch parked/services-offer, with drafts in outreach-parked/ (gitignored).",
   "acceptanceCriteria": [
-    "bash scripts/verify.sh exits 0 after every iteration, including all 11 security audit checks",
-    "No file under the protected paths (scripts/verify.sh, scripts/security-audit.mjs, security/, scripts/ralph/, .claude/, .github/workflows/) changes; ralph.sh halts the run if one does",
-    "Every automatable task below has passes: true, each landed as its own commit",
-    "No new production dependency; any new dev dependency is justified in plans/progress.md",
-    "plans/progress.md records what each task changed and learned"
+    "bash scripts/verify.sh passes after every task",
+    "--simulate never sends requests to the user's API: the simulated agent's tool calls are answered from the spec's own examples",
+    "The spec is only ever sent to a model endpoint the user configured, and the key comes only from an environment variable",
+    "Everything works without an LLM key; --simulate explains what it needs when none is set"
   ],
   "securityRequirements": [
-    "Network access only from src/core/load.ts and src/probe/ (enforced by the audit)",
-    "The probe sends only GET, HEAD and OPTIONS, never to private or loopback addresses by default, and never forwards credentials to a host other than the declared server",
-    "Secrets come only from environment variables and never appear in any output, report, log or error",
-    "Workflows and action.yml pin every action to a commit SHA, declare least-privilege permissions, and never interpolate untrusted ${{ }} values into shell commands"
+    "LLM calls live only under src/sim/. Adding that path to networkAllowedFiles in security/policy.json is a human decision (see H-101)",
+    "Refuse model IDs containing 'contributor' (Meta trains on that tier), and refuse any base URL that isn't HTTPS unless it's a local model",
+    "Spec contents, keys and model responses never appear in telemetry, because there is none; reports include only scores and the chosen calls"
   ],
   "features": [
     {
-      "id": "T-001",
-      "title": "Polish report wording: singular counts and required-vs-recommended metadata",
+      "id": "T-101",
+      "title": "Agent profiles: --profile muse|mcp|openai-apps|claude|gemini",
       "priority": "high",
       "acceptanceCriteria": [
-        "No rule message or finding produced for any fixture in fixtures/ contains the text \"(s)\" or \"All 1 \"; a test renders every fixture and asserts this",
-        "META001's message states required and recommended gaps separately, e.g. \"1 required field missing, 1 recommended\", and a test covers it",
-        "Existing tests updated rather than deleted; total test count does not drop",
+        "A profile is data (rule on/off and severity overrides plus a rationale), not code branches; muse stays the default so current output is unchanged",
+        "Profiles differ where the platforms actually differ, with a source cited per difference (for example OAuth-only is a fail for muse but a pass for claude and mcp)",
+        "--profile is available in the CLI, the config file (profile:) and the Action (profile input); the report header names the profile",
+        "Tests: the same fixture scores differently under muse and claude for the documented reasons; unknown profile names are rejected",
         "bash scripts/verify.sh passes"
       ],
-      "passes": true,
-      "notes": "Warm-up task. Seen on the Petstore run: 'All 1 high-impact action(s)' and '1 required listing field(s) missing' while listing two items.",
-      "completed_at": "2026-09-23T10:13:43-04:00"
+      "passes": false,
+      "notes": "base.md: make the checker multi-target with the Muse ruleset as one plugin; this is the hedge if Meta ships its own validator."
     },
     {
-      "id": "T-002",
-      "title": "Safe HTTP client for probing (src/probe/http.ts)",
-      "priority": "high",
-      "acceptanceCriteria": [
-        "safeRequest(url, options) is built on node:http/node:https with a custom DNS lookup that rejects loopback, private, link-local, CGNAT, multicast, unspecified and IPv4-mapped IPv6 private addresses AFTER resolution, so DNS rebinding cannot reach internal hosts",
-        "Methods other than GET, HEAD and OPTIONS throw before any socket opens",
-        "Redirects are followed manually, at most 3, re-validating scheme and resolved address on every hop; any credential header is dropped when the origin changes",
-        "Default total timeout 10s and default body cap 1 MiB; oversize bodies are aborted and flagged truncated",
-        "HTTPS only by default; plain HTTP and private networks need explicit options (allowInsecureHttp, allowPrivateNetwork) that default to false",
-        "Sends User-Agent muse-ready/<version>",
-        "test/probe.security.test.ts exists and contains every test title listed under probeSecurityTests in security/policy.json, verbatim, each exercising real behaviour against local test servers",
-        "No new production dependency",
-        "bash scripts/verify.sh passes"
-      ],
-      "passes": true,
-      "notes": "The audit starts enforcing the probe security tests the moment src/probe/ exists, so create the test file in the same commit. 'never writes credentials into any report format' can assert on safeRequest results and errors for now; T-004 extends it to reports.",
-      "completed_at": "2026-09-23T10:16:15-04:00"
-    },
-    {
-      "id": "T-003",
-      "title": "--probe mode with live checks NET002, LAT001, ERR002, PAGE002",
-      "priority": "high",
-      "acceptanceCriteria": [
-        "CLI flag --probe is off by default; without it the tool opens no connection except fetching a URL spec (a test asserts the probe module is never called)",
-        "Probe target is the first declared OpenAPI server, or connector.serverUrl for MCP input",
-        "The probe only calls GET/HEAD/OPTIONS operations that need no required parameters (or whose required parameters have a default or example); a test runs a full probe against a local server exposing write operations and asserts it received zero POST/PUT/PATCH/DELETE requests",
-        "Each new rule lives in its own file under src/rules/ with a rationale and is marked provisional where Muse's limits are undocumented: NET002 (DNS resolves to public addresses and TLS verifies), LAT001 (p95 latency across up to 5 GETs; warn above 3s, fail above 30s or timeout), ERR002 (unauthenticated call to a secured operation returns 401/403 and the body contains no stack trace or secret-looking strings), PAGE002 (sampled list response under 1 MiB; warn above 256 KiB)",
-        "Each new rule has a passing and a failing case in tests using local servers",
-        "Probe rules return not-applicable when --probe is off",
-        "The JSON report gains probe: { enabled, target, requests: [{ method, path, status, ms }] } and the terminal, Markdown and SARIF outputs show probe findings",
-        "README documents --probe, exactly what traffic it sends, and the regenerated rule catalog (node scripts/rules-doc.mjs)",
-        "bash scripts/verify.sh passes"
-      ],
-      "passes": true,
-      "notes": "Depends on T-002.",
-      "completed_at": "2026-09-23T10:21:49-04:00"
-    },
-    {
-      "id": "T-004",
-      "title": "Authenticated probing via MUSE_READY_TOKEN",
+      "id": "T-102",
+      "title": "SPEAK001: responses are short enough to speak (voice, glasses, Charm)",
       "priority": "medium",
       "acceptanceCriteria": [
-        "The token is read only from the MUSE_READY_TOKEN environment variable, never from a CLI argument or config file",
-        "Header defaults to 'Authorization: Bearer <token>'; config probe.authHeader can switch to an API-key header name",
-        "The token is sent only to the exact origin of the probe target, never to the spec host if different and never across a redirect to another origin (tests)",
-        "A test runs a full probe with a known token and asserts the token string appears in none of: terminal output, JSON, Markdown, SARIF, badge, thrown errors",
+        "Static part: warn when list or detail response schemas have no short summary-like field (summary, title, name, label, description)",
+        "Live part (--probe): warn when a sampled response has no field under ~200 characters that could be read aloud",
+        "Thresholds labelled provisional, with the rationale citing Muse voice mode and glasses",
+        "Passing and failing cases in tests; good fixtures still pass; README catalog regenerated",
         "bash scripts/verify.sh passes"
       ],
-      "passes": true,
-      "notes": "Depends on T-003.",
-      "completed_at": "2026-09-23T10:23:50-04:00"
+      "passes": false,
+      "notes": "base.md idea #21."
     },
     {
-      "id": "T-005",
-      "title": "JavaScript GitHub Action (action.yml at repo root)",
+      "id": "T-103",
+      "title": "Scenario files: muse-ready.tasks.yaml",
       "priority": "high",
       "acceptanceCriteria": [
-        "action.yml uses runs.using: node24 with main pointing at a committed, bundled action/dist/index.js",
-        "Inputs: spec (required), config, fail-under, probe (default false), sarif-file (default muse-ready.sarif), badge-file. Outputs: score, grade, passed, sarif-file",
-        "Writes the Markdown report to $GITHUB_STEP_SUMMARY and the SARIF file to disk; sets outputs via $GITHUB_OUTPUT using a random heredoc delimiter so values cannot inject extra outputs",
-        "Makes no GitHub API calls and needs no token; the action's source lives under src/action/ and passes the audit's network invariant",
-        "No new production dependency; a bundler may be added as a dev dependency only if its install script is already allowed by security/policy.json (esbuild is)",
-        "A test runs the bundled entry with fake INPUT_* and GITHUB_* environment variables and temp files, and asserts outputs, step summary and SARIF",
-        "A test fails if action/dist/index.js is stale relative to the source",
-        "The audit's workflow-hardening check passes for action.yml",
+        "Format: a list of scenarios, each with a user request in plain language, the expected operation(s) by operationId or method+path, and argument expectations (equals, contains, present, absent)",
+        "It can also mark a scenario as 'should refuse or ask' (for example destructive requests without confirmation)",
+        "It's validated with clear line-numbered errors; muse-ready can also generate a starter file from the spec (one read, one write, one destructive scenario)",
+        "Documented in README with an example for the Tasks fixture",
         "bash scripts/verify.sh passes"
       ],
-      "passes": true,
-      "notes": "action/ is not part of the npm package; the audit's package-contents check will confirm that.",
-      "completed_at": "2026-09-23T10:26:18-04:00"
+      "passes": false,
+      "notes": "Deterministic grading lives here: the LLM proposes calls, and plain code checks them against these expectations."
     },
     {
-      "id": "T-006",
-      "title": "Example workflow and Action docs",
+      "id": "T-104",
+      "title": "Simulator core: OpenAI-compatible tool-calling client plus a mock API from spec examples",
+      "priority": "high",
+      "acceptanceCriteria": [
+        "src/sim/ turns spec operations into tool definitions, runs each scenario through a configured model, and answers every tool call from the spec's examples (never from the network)",
+        "Model endpoint: any OpenAI-compatible base URL (Meta Model API, OpenRouter, OpenAI, a local model); key only from MUSE_READY_LLM_KEY; model and base URL from config or flags",
+        "Refuses '-contributor' model IDs and non-HTTPS remote endpoints (tests)",
+        "Scores per scenario: right operation, arguments meet expectations, no unexpected writes, turns used; repeated runs (default 3) to measure consistency",
+        "Tested against a deterministic fake model server in tests; no real LLM calls in CI",
+        "bash scripts/verify.sh passes (after H-101)"
+      ],
+      "passes": false,
+      "notes": "Blocked on H-101 (policy change) and H-102 (model and key) for real use; the fake-server tests don't need either."
+    },
+    {
+      "id": "T-105",
+      "title": "--simulate in the CLI, report and Action",
       "priority": "medium",
       "acceptanceCriteria": [
-        "docs/examples/muse-ready.yml: triggers on pull_request (never pull_request_target), top-level permissions contents: read plus security-events: write only on the job that uploads SARIF, every uses: pinned to a 40-character SHA with a version comment, persist-credentials: false on checkout",
-        "Uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 (v7.0.1) and github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd (v4.38.1)",
-        "A test parses the example with the yaml package and asserts the pinning, permissions and trigger rules above",
-        "README gains a GitHub Action section with the snippet and a one-paragraph explanation of the permissions it needs and why",
+        "--simulate [tasks file] runs the scenarios and adds a Simulation section: pass rate, per-scenario result, what the agent called and why it failed",
+        "The JSON report gains simulation: { model, runs, scenarios: [...] }; SARIF gets a finding per failed scenario pointing at the operation's description",
+        "Without a key it explains which env var and config it needs, and exits 2",
+        "The Action gains simulate and tasks-file inputs; the key comes from the workflow's env (a secret)",
         "bash scripts/verify.sh passes"
       ],
-      "passes": true,
-      "notes": "Depends on T-005. Do not add files under .github/workflows/ (protected).",
-      "completed_at": "2026-09-23T10:27:15-04:00"
+      "passes": false,
+      "notes": "Depends on T-103 and T-104."
     },
     {
-      "id": "T-007",
-      "title": "Opt-in PR comment from the Action",
-      "priority": "low",
-      "acceptanceCriteria": [
-        "Human decision required first"
-      ],
+      "id": "H-101",
+      "title": "Human: allow network access from src/sim/ in security/policy.json",
+      "priority": "high",
+      "acceptanceCriteria": ["networkAllowedFiles includes src/sim/"],
       "passes": false,
       "skip": true,
-      "skipReason": "Needs a human decision: posting comments requires pull-requests: write and GitHub API calls from the action, which widens the token's permissions and the network surface.",
+      "skipReason": "security/policy.json is human-owned.",
       "notes": ""
     },
     {
-      "id": "T-008",
-      "title": "Create the GitHub repo, enable code scanning, publish to npm and the Marketplace",
-      "priority": "low",
-      "acceptanceCriteria": [
-        "Human task"
-      ],
+      "id": "H-102",
+      "title": "Human: choose the simulated-agent model and get a key",
+      "priority": "high",
+      "acceptanceCriteria": ["Model decided", "Key available as MUSE_READY_LLM_KEY locally"],
       "passes": false,
       "skip": true,
-      "skipReason": "Requires account access and outward-facing publishing. The loop is blocked from gh, git push and npm publish on purpose.",
-      "notes": "Also replace the placeholder repo URL in src/report/sarif.ts once the repo exists."
+      "skipReason": "Needs an account and billing decision.",
+      "notes": "base.md suggests Meta Model API muse-spark-1.3 (mirrors Muse, $20 free credits, OpenAI-compatible; never the -contributor tier), with a different model family as the judge because of the Spark 1.3 reward-hacking report."
     },
     {
-      "id": "T-009",
-      "title": "Run the Muse custom-connector field experiment and feed results into the ruleset",
-      "priority": "low",
-      "acceptanceCriteria": [
-        "Human task"
-      ],
+      "id": "H-103",
+      "title": "Human: launch the free checker (Show HN, r/MuseAgent, X) and run it on ~20 public connector repos",
+      "priority": "medium",
+      "acceptanceCriteria": ["Posts published", "Results collected"],
       "passes": false,
       "skip": true,
-      "skipReason": "Needs a US Muse account and a deployed test API (base.md section B).",
-      "notes": ""
-    },
-    {
-      "id": "T-010",
-      "title": "Re-check the ruleset against Meta Connect announcements (Sept 23-24, 2026)",
-      "priority": "low",
-      "acceptanceCriteria": [
-        "Human review"
-      ],
-      "passes": false,
-      "skip": true,
-      "skipReason": "Needs a human to judge which announcements change which rules; bump RULESET_DATE afterwards.",
-      "notes": ""
+      "skipReason": "Outward-facing posts need the user's approval.",
+      "notes": "base.md validation bar: 30+ stars and 5+ Action installs in two weeks, plus 3 people saying they'd pay for hosted simulation. This is the cheapest way to test Readiness Pro demand before building the hosted part."
     }
   ]
 }

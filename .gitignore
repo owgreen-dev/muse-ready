@@ -12,3 +12,6 @@ muse-ready-report.*
 .claude/ralph-state.local.md
 .claude/ralph-status.local.json
 scripts/ralph/runs/
+
+# Private sales drafts, never commit
+outreach*/
