@@ -54,5 +54,14 @@
     "esbuild": "0.28.2",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/owgreen-dev/muse-ready.git"
+  },
+  "homepage": "https://github.com/owgreen-dev/muse-ready#readme",
+  "bugs": {
+    "url": "https://github.com/owgreen-dev/muse-ready/issues"
+  },
+  "author": "owgreen-dev"
 }
