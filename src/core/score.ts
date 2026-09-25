@@ -33,7 +33,13 @@ export function computeScore(results: RuleResult[]): Score {
   return { overall, grade: grade(overall), directory: sub("directory"), custom: sub("custom") };
 }
 
+/**
+ * Blocking failures: a fail in auth, injection or network at high or critical severity. A profile or the
+ * user's config can lower a rule to medium or low, and then it no longer blocks (e.g. AUTH001 in muse-directory).
+ */
 export function computeGate(results: RuleResult[]): { passed: boolean; blocking: string[] } {
-  const blocking = results.filter((r) => r.status === "fail" && GATE_CATEGORIES.has(r.category)).map((r) => r.id);
+  const blocking = results
+    .filter((r) => r.status === "fail" && GATE_CATEGORIES.has(r.category) && (r.severity === "critical" || r.severity === "high"))
+    .map((r) => r.id);
   return { passed: blocking.length === 0, blocking };
 }

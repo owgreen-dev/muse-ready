@@ -29,6 +29,24 @@ describe("profiles", () => {
     expect(directory.get("AUTH002")?.severity).toBe("high"); // the implicit flow still matters
   });
 
+  it("does not block a clean OAuth-only API from the Muse directory (found in the 0.4.0 smoke test)", async () => {
+    const { loadInput, runRules, BUILTIN_RULES } = await import("../src/index.js");
+    const input = await loadInput(fixture("bad/auth001-oauth-only.openapi.yaml"));
+    const flows = input.resolved.components.securitySchemes.oauth.flows;
+    delete flows.implicit;
+    flows.authorizationCode.refreshUrl = "https://auth.example.com/token";
+    const custom = await runRules(input, BUILTIN_RULES, { profile: "muse-custom" });
+    const directory = await runRules(input, BUILTIN_RULES, { profile: "muse-directory" });
+    expect(custom.gate.blocking).toEqual(["AUTH001"]);
+    expect(directory.gate).toEqual({ passed: true, blocking: [] });
+  });
+
+  it("stops blocking when the user lowers a gate rule's severity", async () => {
+    const lowered = await run("bad/net001-localhost.openapi.yaml", { rules: { NET001: "medium" } });
+    expect(lowered.gate.passed).toBe(true);
+    expect((await run("bad/net001-localhost.openapi.yaml")).gate.blocking).toContain("NET001");
+  });
+
   it("treats OAuth-only as a Muse blocker but correct for Claude", async () => {
     const muse = ids(await run("bad/auth001-oauth-only.openapi.yaml"));
     const claude = ids(await run("bad/auth001-oauth-only.openapi.yaml", { profile: "claude" }));

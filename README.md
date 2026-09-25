@@ -34,7 +34,7 @@ Two headline sub-scores:
 - **Directory readiness:** would the connector survive Meta's "functional, security and legal" review for the Settings → Connectors directory?
 - **Custom-connector readiness:** will Muse actually use the API well when a user asks it to build a connector from your spec?
 
-Checks return `pass`, `warn` (half credit) or `fail`, weighted by severity: critical 10, high 5, medium 3, low 1. Any `fail` in **auth**, **injection** or **network** blocks the badge and makes the command exit 1, whatever the score.
+Checks return `pass`, `warn` (half credit) or `fail`, weighted by severity: critical 10, high 5, medium 3, low 1. Any `fail` at high or critical severity in **auth**, **injection** or **network** blocks the badge and makes the command exit 1, whatever the score. A profile or your config can lower a rule's severity, and then it no longer blocks.
 
 ## Output
 

@@ -18105,7 +18105,7 @@ function computeScore(results) {
   return { overall, grade: grade(overall), directory: sub("directory"), custom: sub("custom") };
 }
 function computeGate(results) {
-  const blocking = results.filter((r) => r.status === "fail" && GATE_CATEGORIES.has(r.category)).map((r) => r.id);
+  const blocking = results.filter((r) => r.status === "fail" && GATE_CATEGORIES.has(r.category) && (r.severity === "critical" || r.severity === "high")).map((r) => r.id);
   return { passed: blocking.length === 0, blocking };
 }
 
