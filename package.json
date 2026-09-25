@@ -1,6 +1,6 @@
 {
   "name": "muse-ready",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Readiness checker for Meta Muse connectors: score an OpenAPI spec or MCP tool list before you submit it.",
   "type": "module",
   "license": "Apache-2.0",
