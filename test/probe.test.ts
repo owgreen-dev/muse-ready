@@ -191,7 +191,9 @@ describe("--probe", () => {
     const file = join(dir, "tools.json");
     writeFileSync(file, JSON.stringify({ tools: [{ name: "ping", description: "Checks the server is up.", inputSchema: { type: "object" } }] }));
     const report = await check(file, { config: { connector: { serverUrl: `${s.base}/mcp` } }, probe: LOCAL });
-    expect(s.requests).toEqual([{ method: "GET", url: "/mcp", auth: undefined }]);
+    // One GET to the endpoint, plus credential-free GETs for OAuth discovery (auth type unknown).
+    expect(s.requests.filter((r) => !r.url.startsWith("/.well-known/"))).toEqual([{ method: "GET", url: "/mcp", auth: undefined }]);
+    expect(s.requests.filter((r) => r.url.startsWith("/.well-known/")).every((r) => r.method === "GET" && r.auth === undefined)).toBe(true);
     expect(result(report, "LAT001").status).toBe("pass");
   });
 

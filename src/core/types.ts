@@ -94,8 +94,25 @@ export interface ProbeRequest {
   /** Whether a credential was attached (never the credential itself). */
   authenticated?: boolean;
   error?: { code: string; message: string };
+  /** The WWW-Authenticate header on a 401, for OAuth discovery checks. */
+  wwwAuthenticate?: string;
   /** First 4 KiB of the body, for leak checks. Not included in reports. */
   bodySample?: string;
+}
+
+export interface OAuthDiscovery {
+  /** Why discovery ran: the spec or config says OAuth, or it was tried for an MCP server with unknown auth. */
+  reason: "declared" | "attempted";
+  resourceMetadata: { url?: string; status?: number; authorizationServers?: string[]; error?: string };
+  authorizationServer?: {
+    url?: string;
+    status?: number;
+    s256?: boolean;
+    cimd?: boolean;
+    dcr?: boolean;
+    iss?: boolean;
+    error?: string;
+  };
 }
 
 export interface ProbeResult {
@@ -109,6 +126,8 @@ export interface ProbeResult {
   skipped: { operation: string; reason: string }[];
   /** Set when the probe could not start, e.g. no server URL. */
   error?: string;
+  /** OAuth discovery (MCP authorization spec), when the server uses or advertises OAuth. */
+  oauth?: OAuthDiscovery;
   /** The listing icon, fetched when connector.iconUrl is set. */
   icon?: { url: string; status?: number; contentType?: string; format?: "png" | "jpeg"; width?: number; height?: number; error?: string };
 }

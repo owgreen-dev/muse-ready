@@ -5,6 +5,8 @@ import type { ConnectorMeta, LoadedInput, ProbeRequest, ProbeResult } from "../c
 import { WRITE_VERBS, firstWord } from "../rules/util.js";
 import { isBlockedAddress } from "./address.js";
 import { imageSize } from "./image.js";
+import { discoverOAuth } from "./oauth.js";
+import { isOAuthScheme, securitySchemes } from "../core/openapi.js";
 import { ProbeError, redactUrl, safeRequest, type SafeRequestOptions } from "./http.js";
 
 export const MAX_OPERATIONS = 8;
@@ -95,6 +97,8 @@ async function call(url: string, operation: string | undefined, headers: Record<
       credentialHeaders: Object.keys(opts.authHeaders ?? {}),
     });
     Object.assign(record, { status: r.status, ms: r.ms, bytes: r.bytes, truncated: r.truncated, bodySample: r.body.slice(0, BODY_SAMPLE_BYTES) });
+    const challenge = r.headers["www-authenticate"];
+    if (r.status === 401 && challenge) record.wwwAuthenticate = Array.isArray(challenge) ? challenge.join(", ") : challenge;
   } catch (err) {
     const e = err instanceof ProbeError ? err : new ProbeError("network", "request failed");
     record.error = { code: e.code, message: e.message };
@@ -169,6 +173,14 @@ export async function runProbe(input: LoadedInput, connector: ConnectorMeta, opt
       result.requests.push(r);
       if (r.error) break;
     }
+  }
+
+  // OAuth discovery: when the spec or config says OAuth, or (for MCP) when auth is unknown.
+  const declaredOAuth =
+    input.kind === "openapi" ? securitySchemes(input.resolved).some((s) => isOAuthScheme(s.scheme)) : connector.auth === "oauth";
+  const unknownMcp = input.kind === "mcp" && !connector.auth;
+  if (declaredOAuth || unknownMcp) {
+    result.oauth = await discoverOAuth(target.url, declaredOAuth ? "declared" : "attempted", opts.request ?? {});
   }
 
   const tlsError = result.requests.map((r) => r.error).find((e) => e && /TLS verification failed/.test(e.message));

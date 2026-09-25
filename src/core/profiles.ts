@@ -21,8 +21,11 @@ export const PROFILES: Record<string, Profile> = {
     title: "Muse custom connector",
     description: "A connector Muse builds for one user from your public API (default; alias: muse).",
     goal: "using this as a Muse custom connector",
-    rules: { MCP002: "off" },
-    reasons: { MCP002: "Custom connectors have no tool-title requirement." },
+    rules: { MCP002: "off", AUTH003: "medium" },
+    reasons: {
+      MCP002: "Custom connectors have no tool-title requirement.",
+      AUTH003: "Custom connectors work best with a static token (AUTH001), so OAuth conformance matters less here.",
+    },
   },
   "muse-directory": {
     id: "muse-directory",

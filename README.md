@@ -94,12 +94,15 @@ By default muse-ready only reads your document. With `--probe` it also calls the
 | LAT001 | p95 latency (warn above 3 s, fail above 30 s or on timeout) |
 | ERR002 | Secured operations reject unauthenticated calls with 401/403, and no error body leaks a stack trace or credential |
 | PAGE002 | Default list responses stay under 256 KiB (fail above 1 MiB) |
+| AUTH003 | For OAuth servers: RFC 9728 metadata, PKCE S256, client metadata documents rather than deprecated registration, and `iss` (RFC 9207), per the MCP 2026-07-28 spec |
+| META003 | The listing icon is a reachable 512×512 PNG or JPEG |
 
 The latency and size thresholds are provisional because Muse's limits are undocumented.
 
 **Exactly what it sends:**
 - Only `GET` requests: at most 8 documented operations, a repeat of each secured one without credentials, and a few repeats for latency. That's 16 requests at the most. It never sends `POST`, `PUT`, `PATCH` or `DELETE`, and a test proves it.
 - It calls only operations whose path and required query parameters have an `example` or `default`, and skips anything with a request body.
+- For OAuth servers, and for MCP servers whose auth type isn't set, it also fetches the public discovery documents: `/.well-known/oauth-protected-resource` and the authorization server's metadata. These are plain GETs, sent without credentials.
 - It skips GETs named like actions, such as `GET /logout`, because they can still have side effects. The report lists everything it skipped and why.
 - It never connects to loopback, private, link-local or cloud-metadata addresses. It checks every DNS answer and every redirect, and pins the connection to the vetted address.
 - It requires HTTPS with a verified certificate. Each request has a 30 s limit and responses are cut off at about 1 MiB.
@@ -234,6 +237,7 @@ console.log(report.score.overall, report.gate.passed);
 | [SPEAK001](#speak001) | Responses include something short enough to say aloud | medium | openapi | custom |
 | [AUTH001](#auth001) | Accepts a static bearer token or API-key header | critical | openapi, mcp | directory, custom |
 | [AUTH002](#auth002) | OAuth setup is workable for an agent | high | openapi, mcp | custom |
+| [AUTH003](#auth003) | Live: OAuth discovery follows the MCP authorization spec | high | openapi, mcp | directory, custom |
 | [SCOPE001](#scope001) | Read operations have no side effects | high | openapi, mcp | directory, custom |
 | [SCOPE002](#scope002) | Write operations are clearly marked as writes | high | openapi, mcp | directory, custom |
 | [SCOPE003](#scope003) | High-impact actions take a confirm or dry-run parameter | medium | openapi, mcp | directory, custom |
@@ -281,6 +285,10 @@ console.log(report.score.overall, report.gate.passed);
 ### AUTH002
 
 **OAuth setup is workable for an agent.** Reports show Muse cannot sustain 10-minute PKCE tokens and that its Dynamic Client Registration is rejected by redirect-host allow-lists (imajin-ai #2252; sentinelx-cloud-core #49). Muse's OAuth callback host was observed as agent.meta.ai.
+
+### AUTH003
+
+**Live: OAuth discovery follows the MCP authorization spec.** Agents find your authorization server through RFC 9728 protected-resource metadata, required by MCP since the 2025-06-18 revision. The 2026-07-28 revision prefers Client ID Metadata Documents and deprecates Dynamic Client Registration, and asks servers to return iss (RFC 9207); PKCE S256 is mandatory in OAuth 2.1. Checked live with --probe using credential-free GET requests.
 
 ### SCOPE001
 

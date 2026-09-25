@@ -1,6 +1,7 @@
 import type { Rule } from "../core/types.js";
 import { AUTH001 } from "./auth001.js";
 import { AUTH002 } from "./auth002.js";
+import { AUTH003 } from "./auth003.js";
 import { DESC001 } from "./desc001.js";
 import { ERR002 } from "./err002.js";
 import { LAT001 } from "./lat001.js";
@@ -27,7 +28,7 @@ import { SPEAK001 } from "./speak001.js";
 export const BUILTIN_RULES: Rule[] = [
   SPEC001, SPEC002, MCP001, MCP002,
   DESC001, SPEAK001,
-  AUTH001, AUTH002,
+  AUTH001, AUTH002, AUTH003,
   SCOPE001, SCOPE002, SCOPE003, IDEM001,
   INJ001,
   ERR001, ERR002, PAGE001, PAGE002, LAT001,

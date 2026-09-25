@@ -17983,8 +17983,11 @@ var PROFILES = {
     title: "Muse custom connector",
     description: "A connector Muse builds for one user from your public API (default; alias: muse).",
     goal: "using this as a Muse custom connector",
-    rules: { MCP002: "off" },
-    reasons: { MCP002: "Custom connectors have no tool-title requirement." }
+    rules: { MCP002: "off", AUTH003: "medium" },
+    reasons: {
+      MCP002: "Custom connectors have no tool-title requirement.",
+      AUTH003: "Custom connectors work best with a static token (AUTH001), so OAuth conformance matters less here."
+    }
   },
   "muse-directory": {
     id: "muse-directory",
@@ -34596,6 +34599,52 @@ var AUTH002 = {
   }
 };
 
+// src/rules/auth003.ts
+var AUTH003 = {
+  id: "AUTH003",
+  title: "Live: OAuth discovery follows the MCP authorization spec",
+  category: "auth",
+  severity: "high",
+  subscores: ["directory", "custom"],
+  appliesTo: ["openapi", "mcp"],
+  rationale: "Agents find your authorization server through RFC 9728 protected-resource metadata, required by MCP since the 2025-06-18 revision. The 2026-07-28 revision prefers Client ID Metadata Documents and deprecates Dynamic Client Registration, and asks servers to return iss (RFC 9207); PKCE S256 is mandatory in OAuth 2.1. Checked live with --probe using credential-free GET requests.",
+  run({ probe }) {
+    if (!probe) return { status: "not-applicable", message: "Live check. Run with --probe to include it." };
+    const d = probe.oauth;
+    if (!d) return { status: "not-applicable", message: "The server does not use OAuth." };
+    const prm = d.resourceMetadata;
+    if (!prm.authorizationServers?.length) {
+      if (d.reason === "attempted") {
+        return { status: "not-applicable", message: 'No OAuth metadata found. If the server uses OAuth, set connector.auth to "oauth" to check it.' };
+      }
+      return {
+        status: "fail",
+        message: "No protected-resource metadata (RFC 9728), so agents can't discover your authorization server.",
+        findings: [{ message: `Tried ${prm.url ?? "the well-known URL"}: ${prm.error ?? `HTTP ${prm.status}`}` }]
+      };
+    }
+    const as = d.authorizationServer;
+    if (!as || as.error) {
+      return { status: "fail", message: "The authorization server's metadata (RFC 8414) could not be read.", findings: as?.error ? [{ message: as.error }] : [] };
+    }
+    const fails = [];
+    const warns = [];
+    if (!as.s256) fails.push({ message: "The authorization server doesn't advertise PKCE S256 (code_challenge_methods_supported)" });
+    if (!as.cimd && as.dcr) warns.push({ message: "Only Dynamic Client Registration is offered; MCP 2026-07-28 deprecates it in favour of Client ID Metadata Documents" });
+    if (!as.cimd && !as.dcr) warns.push({ message: "Neither Client ID Metadata Documents nor Dynamic Client Registration is offered, so clients need pre-registration" });
+    if (!as.iss) warns.push({ message: "authorization_response_iss_parameter_supported is not set (RFC 9207)" });
+    const challenged = probe.requests.filter((r) => r.status === 401);
+    if (challenged.length && !challenged.some((r) => /resource_metadata\s*=/.test(r.wwwAuthenticate ?? ""))) {
+      warns.push({ message: "401 responses don't point to the metadata (WWW-Authenticate resource_metadata, RFC 9728 section 5.1)" });
+    }
+    return aggregate(fails, warns, {
+      pass: "OAuth discovery, PKCE, client metadata documents and iss all follow the current MCP spec.",
+      fail: "OAuth setup breaks the MCP authorization spec.",
+      warn: "OAuth discovery works but lags the current MCP spec."
+    });
+  }
+};
+
 // src/rules/desc001.ts
 var MIN_CHARS = 20;
 function text(v) {
@@ -35508,6 +35557,7 @@ var BUILTIN_RULES = [
   SPEAK001,
   AUTH001,
   AUTH002,
+  AUTH003,
   SCOPE001,
   SCOPE002,
   SCOPE003,
@@ -35950,6 +36000,70 @@ function describeNetworkError(err) {
   return code ?? "network error";
 }
 
+// src/probe/oauth.ts
+function resourceMetadataUrls(resource) {
+  const u = new URL(resource);
+  const path = u.pathname.replace(/\/+$/, "");
+  const root = `${u.origin}/.well-known/oauth-protected-resource`;
+  return path ? [`${root}${path}`, root] : [root];
+}
+function authorizationServerMetadataUrls(issuer) {
+  const u = new URL(issuer);
+  const path = u.pathname.replace(/\/+$/, "");
+  return [
+    `${u.origin}/.well-known/oauth-authorization-server${path}`,
+    `${u.origin}/.well-known/openid-configuration${path}`,
+    ...path ? [`${u.origin}${path}/.well-known/openid-configuration`] : []
+  ];
+}
+async function getJson(urls, request) {
+  let last = {};
+  for (const url of urls) {
+    try {
+      const r = await safeRequest(url, { ...request, timeoutMs: 15e3, maxBytes: 256 * 1024, headers: { accept: "application/json" } });
+      if (r.status >= 200 && r.status < 300) {
+        try {
+          return { url: redactUrl(url), status: r.status, json: JSON.parse(r.body) };
+        } catch {
+          last = { url: redactUrl(url), status: r.status, error: "response is not JSON" };
+          continue;
+        }
+      }
+      last = { url: redactUrl(url), status: r.status };
+    } catch (err) {
+      last = { url: redactUrl(url), error: err instanceof ProbeError ? err.message : "request failed" };
+    }
+  }
+  return last;
+}
+async function discoverOAuth(resource, reason, request) {
+  const prm = await getJson(resourceMetadataUrls(resource), request);
+  const servers = Array.isArray(prm.json?.authorization_servers) ? prm.json.authorization_servers.filter((s) => typeof s === "string") : void 0;
+  const discovery = {
+    reason,
+    resourceMetadata: { url: prm.url, status: prm.status, authorizationServers: servers, ...prm.error ? { error: prm.error } : {} }
+  };
+  if (!servers?.length) return discovery;
+  let issuer;
+  try {
+    issuer = new URL(servers[0]).toString();
+  } catch {
+    discovery.authorizationServer = { error: "authorization_servers[0] is not a valid URL" };
+    return discovery;
+  }
+  const as = await getJson(authorizationServerMetadataUrls(issuer), request);
+  const m = as.json;
+  discovery.authorizationServer = m ? {
+    url: as.url,
+    status: as.status,
+    s256: Array.isArray(m.code_challenge_methods_supported) && m.code_challenge_methods_supported.includes("S256"),
+    cimd: m.client_id_metadata_document_supported === true,
+    dcr: typeof m.registration_endpoint === "string",
+    iss: m.authorization_response_iss_parameter_supported === true
+  } : { url: as.url, status: as.status, error: as.error ?? `no metadata found (HTTP ${as.status ?? "error"})` };
+  return discovery;
+}
+
 // src/probe/run.ts
 var MAX_OPERATIONS = 8;
 var LATENCY_SAMPLES = 5;
@@ -36021,6 +36135,8 @@ async function call(url, operation, headers, opts, maxBytes) {
       credentialHeaders: Object.keys(opts.authHeaders ?? {})
     });
     Object.assign(record, { status: r.status, ms: r.ms, bytes: r.bytes, truncated: r.truncated, bodySample: r.body.slice(0, BODY_SAMPLE_BYTES) });
+    const challenge = r.headers["www-authenticate"];
+    if (r.status === 401 && challenge) record.wwwAuthenticate = Array.isArray(challenge) ? challenge.join(", ") : challenge;
   } catch (err) {
     const e = err instanceof ProbeError ? err : new ProbeError("network", "request failed");
     record.error = { code: e.code, message: e.message };
@@ -36085,6 +36201,11 @@ async function runProbe(input2, connector, opts = {}) {
       result.requests.push(r);
       if (r.error) break;
     }
+  }
+  const declaredOAuth = input2.kind === "openapi" ? securitySchemes(input2.resolved).some((s) => isOAuthScheme(s.scheme)) : connector.auth === "oauth";
+  const unknownMcp = input2.kind === "mcp" && !connector.auth;
+  if (declaredOAuth || unknownMcp) {
+    result.oauth = await discoverOAuth(target.url, declaredOAuth ? "declared" : "attempted", opts.request ?? {});
   }
   const tlsError = result.requests.map((r) => r.error).find((e) => e && /TLS verification failed/.test(e.message));
   if (target.url.startsWith("https:")) result.tls = tlsError ? { verified: false, error: tlsError.message } : { verified: result.requests.some((r) => r.status !== void 0) };

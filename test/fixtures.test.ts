@@ -63,7 +63,7 @@ describe("bad fixtures", () => {
     const { BUILTIN_RULES } = await import("../src/index.js");
     const covered = new Set(cases.map(([, id]) => id));
     // META002 depends on how the spec is fetched (URL tests); live rules are covered in test/probe.test.ts.
-    const elsewhere = new Set(["META002", "NET002", "LAT001", "ERR002", "PAGE002", "MCP002", "META003"]); // MCP002: profiles.test.ts; META003: listing.test.ts
+    const elsewhere = new Set(["META002", "NET002", "LAT001", "ERR002", "PAGE002", "MCP002", "META003", "AUTH003"]); // AUTH003: oauth.test.ts // MCP002: profiles.test.ts; META003: listing.test.ts
     const uncovered = BUILTIN_RULES.map((r) => r.id).filter((id) => !covered.has(id) && !elsewhere.has(id));
     expect(uncovered).toEqual([]);
   });
