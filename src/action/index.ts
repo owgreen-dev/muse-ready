@@ -59,6 +59,8 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<number
   if (failUnder !== undefined && !(failUnder >= 0 && failUnder <= 100)) throw new InputError('Input "fail-under" must be a number from 0 to 100.');
   const probeRaw = input(env, "probe").toLowerCase() || "false";
   if (!["true", "false"].includes(probeRaw)) throw new InputError('Input "probe" must be true or false.');
+  const probeMcpRaw = input(env, "probe-mcp").toLowerCase() || "false";
+  if (!["true", "false"].includes(probeMcpRaw)) throw new InputError('Input "probe-mcp" must be true or false.');
 
   const at = (p: string) => (/^https?:\/\//i.test(p) ? p : resolve(workspace, p));
   const loadedConfig = await loadConfig(configPath ? at(configPath) : undefined, workspace);
@@ -69,8 +71,11 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<number
   const loaded = await loadInput(source);
   const token = env[TOKEN_ENV];
   const probe =
-    probeRaw === "true"
-      ? await runProbe(loaded, connectorFrom(loaded, config), { authHeaders: token ? authHeaders(token, loaded, config.probe?.authHeader) : undefined })
+    probeRaw === "true" || probeMcpRaw === "true"
+      ? await runProbe(loaded, connectorFrom(loaded, config), {
+          authHeaders: token ? authHeaders(token, loaded, config.probe?.authHeader) : undefined,
+          mcp: probeMcpRaw === "true",
+        })
       : undefined;
   const simulateRaw = input(env, "simulate").toLowerCase() || "false";
   if (!["true", "false"].includes(simulateRaw)) throw new InputError('Input "simulate" must be true or false.');

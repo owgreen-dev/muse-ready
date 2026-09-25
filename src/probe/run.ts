@@ -6,6 +6,7 @@ import { WRITE_VERBS, firstWord } from "../rules/util.js";
 import { isBlockedAddress } from "./address.js";
 import { imageSize } from "./image.js";
 import { discoverOAuth } from "./oauth.js";
+import { probeMcp } from "./mcp.js";
 import { isOAuthScheme, securitySchemes } from "../core/openapi.js";
 import { ProbeError, redactUrl, safeRequest, type SafeRequestOptions } from "./http.js";
 
@@ -16,6 +17,8 @@ export const BODY_SAMPLE_BYTES = 4096;
 export const LIST_SAMPLE_CAP = 1024 * 1024 + 1;
 
 export interface ProbeOptions {
+  /** Also send MCP JSON-RPC initialize and tools/list POSTs to an MCP endpoint (--probe-mcp). */
+  mcp?: boolean;
   /** Headers attached to authenticated requests (T-004). Never recorded. */
   authHeaders?: Record<string, string>;
   /** Passed through to safeRequest. Tests use these to reach local servers. */
@@ -140,6 +143,7 @@ export async function runProbe(input: LoadedInput, connector: ConnectorMeta, opt
   if (input.kind === "mcp") {
     const r = await call(target.url, undefined, undefined, opts, BODY_SAMPLE_BYTES);
     result.requests.push(r);
+    if (opts.mcp) result.mcp = await probeMcp(target.url, opts.authHeaders, opts.request ?? {});
   } else {
     const candidates: { o: Operation; url: string }[] = [];
     for (const o of operations(input.resolved)) {

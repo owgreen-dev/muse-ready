@@ -45,6 +45,7 @@ export function renderTerminal(report: Report, opts: { color?: boolean; verbose?
   if (report.probe) {
     const answered = report.probe.requests.filter((r) => r.status !== undefined).length;
     const authed = report.probe.requests.filter((r) => r.authenticated).length;
+    if (report.probe.mcp) lines.push(c.dim("Probe (--probe-mcp): JSON-RPC initialize and tools/list only, sent to the MCP endpoint."));
     lines.push(c.dim(`Probe: ${report.probe.requests.length} GET ${report.probe.requests.length === 1 ? "request" : "requests"} to ${report.probe.target || "(no target)"}, ${answered} answered${authed ? `, ${authed} authenticated` : ""}.`));
   }
 

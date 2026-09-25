@@ -172,3 +172,17 @@ All six automatable tasks pass. T-007 to T-010 are human tasks (see prd.json). S
 - The launch drafts need repositioning.
 
 Suite: 25 rules, 158 tests.
+
+## 2026-09-25 - T-110 --probe-mcp (option 2, approved by Oscar)
+
+**Changed:**
+- `src/probe/http.ts` gains `postMcpJsonRpc`, the only code path that can POST. It accepts only `initialize`, `notifications/initialized` and `tools/list`, sets `maxRedirects` to 0 and applies the same address, size and time limits. `safeRequest` is still GET-only.
+- `src/probe/mcp.ts` sends a stateless `tools/list` first, then `initialize`, then `tools/list` twice in the session. It handles responses sent as streamed events and follows up to 5 pages of `nextCursor`.
+- New rules: MCP004 (stability, medium) and MCP005 (stateless, low). Both say to set MUSE_READY_TOKEN on a 401 instead of failing.
+- New CLI flag `--probe-mcp` and Action input `probe-mcp`.
+
+**Security:**
+- The policy gains 3 required tests: only the allowed methods, no POST redirects, and no POST without the flag. Their `$comment` records the approval.
+- The SIGN-P02 guardrail is updated. `minimumTestCount` rose to 167.
+
+**Tests:** `test/mcp-probe.test.ts` covers a stateless server, a stateful one, an unstable list, streamed-event responses, pagination, auth and the CLI. Suite: 27 rules, 167 tests.

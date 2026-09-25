@@ -188,6 +188,21 @@
       "passes": true,
       "notes": "",
       "completed_at": "2026-09-25T04:42:00-04:00"
+    },
+    {
+      "id": "T-110",
+      "title": "--probe-mcp: tool-list stability (MCP004) and stateless transport (MCP005)",
+      "priority": "high",
+      "acceptanceCriteria": [
+        "Only postMcpJsonRpc can POST, and only initialize, notifications/initialized and tools/list, to the declared MCP endpoint",
+        "POSTs never follow redirects; the general client stays GET-only",
+        "Nothing is POSTed without --probe-mcp",
+        "Three new required tests in security/policy.json",
+        "bash scripts/verify.sh passes"
+      ],
+      "passes": true,
+      "completed_at": "2026-09-25T05:00:27-04:00",
+      "notes": "Option 2, approved by Oscar 2026-09-25."
     }
   ]
 }

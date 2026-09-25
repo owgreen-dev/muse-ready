@@ -100,6 +100,22 @@ export interface ProbeRequest {
   bodySample?: string;
 }
 
+export interface McpListing {
+  status?: number;
+  /** Tool names in the order returned. */
+  tools?: string[];
+  /** Hash of names, descriptions and input schemas, to compare listings. */
+  fingerprint?: string;
+  error?: string;
+}
+
+export interface McpProbe {
+  /** tools/list sent with no initialize and no session (MCP 2026-07-28 stateless core). */
+  stateless: McpListing;
+  /** initialize, then tools/list twice in the same session. */
+  session: { initialized: boolean; protocolVersion?: string; usedSessionId: boolean; error?: string; first?: McpListing; second?: McpListing };
+}
+
 export interface OAuthDiscovery {
   /** Why discovery ran: the spec or config says OAuth, or it was tried for an MCP server with unknown auth. */
   reason: "declared" | "attempted";
@@ -126,6 +142,8 @@ export interface ProbeResult {
   skipped: { operation: string; reason: string }[];
   /** Set when the probe could not start, e.g. no server URL. */
   error?: string;
+  /** MCP JSON-RPC checks, only with --probe-mcp. */
+  mcp?: McpProbe;
   /** OAuth discovery (MCP authorization spec), when the server uses or advertises OAuth. */
   oauth?: OAuthDiscovery;
   /** The listing icon, fetched when connector.iconUrl is set. */
@@ -190,6 +208,6 @@ export interface Report {
     }[];
   };
   /** Summary of live probing; absent unless --probe was used. */
-  probe?: { enabled: true; target: string; requests: Omit<ProbeRequest, "bodySample">[]; skipped: { operation: string; reason: string }[]; error?: string };
+  probe?: { enabled: true; target: string; requests: Omit<ProbeRequest, "bodySample">[]; skipped: { operation: string; reason: string }[]; mcp?: McpProbe; error?: string };
   results: RuleResult[];
 }

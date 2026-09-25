@@ -43,8 +43,12 @@
       "aborts responses larger than the size limit",
       "times out slow responses",
       "only sends credentials to the declared server host",
-      "never writes credentials into any report format"
-    ]
+      "never writes credentials into any report format",
+      "only POSTs JSON-RPC initialize and tools/list, and refuses every other MCP method",
+      "never follows a redirect on a POST",
+      "sends no POST at all without --probe-mcp"
+    ],
+    "$comment": "POST exception approved by Oscar 2026-09-25: --probe-mcp may POST initialize, notifications/initialized and tools/list to the declared MCP endpoint only."
   },
-  "minimumTestCount": 131
+  "minimumTestCount": 167
 }

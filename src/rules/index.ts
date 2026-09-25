@@ -13,6 +13,8 @@ import { INJ001 } from "./inj001.js";
 import { MCP001 } from "./mcp001.js";
 import { MCP002 } from "./mcp002.js";
 import { MCP003 } from "./mcp003.js";
+import { MCP004 } from "./mcp004.js";
+import { MCP005 } from "./mcp005.js";
 import { META001 } from "./meta001.js";
 import { META002 } from "./meta002.js";
 import { META003 } from "./meta003.js";
@@ -27,7 +29,7 @@ import { SPEAK001 } from "./speak001.js";
 
 /** Built-in rules in report order. */
 export const BUILTIN_RULES: Rule[] = [
-  SPEC001, SPEC002, MCP001, MCP002, MCP003,
+  SPEC001, SPEC002, MCP001, MCP002, MCP003, MCP004, MCP005,
   DESC001, SPEAK001,
   AUTH001, AUTH002, AUTH003,
   SCOPE001, SCOPE002, SCOPE003, IDEM001,

@@ -91,6 +91,36 @@ export async function safeRequest(url: string, options: SafeRequestOptions = {})
   if (!SAFE_METHODS.has(method)) {
     throw new ProbeError("blocked-method", `Refusing ${method}: the probe only sends GET, HEAD and OPTIONS.`);
   }
+  return send(url, method, options);
+}
+
+/**
+ * The only way the probe can POST: JSON-RPC to a declared MCP endpoint, opt-in via --probe-mcp.
+ * Only these methods, which list or set up and cannot change anything on the server.
+ */
+export const MCP_READ_METHODS: ReadonlySet<string> = new Set(["initialize", "notifications/initialized", "tools/list"]);
+
+export async function postMcpJsonRpc(
+  url: string,
+  message: { jsonrpc: "2.0"; method: string; id?: number; params?: Record<string, unknown> },
+  options: Omit<SafeRequestOptions, "method" | "maxRedirects" | "binary"> = {},
+): Promise<SafeResponse> {
+  if (!message || typeof message.method !== "string" || !MCP_READ_METHODS.has(message.method)) {
+    throw new ProbeError("blocked-method", `Refusing MCP method ${JSON.stringify(message?.method)}: --probe-mcp only sends ${[...MCP_READ_METHODS].join(", ")}.`);
+  }
+  return send(
+    url,
+    "POST",
+    {
+      ...options,
+      maxRedirects: 0, // never follow a redirect with a POST body
+      headers: { "content-type": "application/json", accept: "application/json, text/event-stream", ...(options.headers ?? {}) },
+    },
+    JSON.stringify(message),
+  );
+}
+
+async function send(url: string, method: string, options: SafeRequestOptions, body?: string): Promise<SafeResponse> {
   const timeoutMs = options.timeoutMs ?? 10_000;
   const maxBytes = options.maxBytes ?? 1024 * 1024;
   const maxRedirects = options.maxRedirects ?? 3;
@@ -110,7 +140,7 @@ export async function safeRequest(url: string, options: SafeRequestOptions = {})
   let currentMethod = method;
 
   for (;;) {
-    const res = await once(current, currentMethod, headers, { deadline, maxBytes, policy, resolver, ca: options.ca, binary: options.binary });
+    const res = await once(current, currentMethod, headers, { deadline, maxBytes, policy, resolver, ca: options.ca, binary: options.binary, body });
     const location = res.headers.location;
     if (!REDIRECT_STATUSES.has(res.status) || typeof location !== "string") {
       return { ...res, url: redactUrl(current.toString()), redirects, ms: Date.now() - started };
@@ -153,6 +183,8 @@ interface OnceOptions {
   resolver: Resolver;
   ca?: string | Buffer;
   binary?: boolean;
+  /** Request body, only ever set by postMcpJsonRpc. */
+  body?: string;
 }
 
 async function once(
@@ -248,7 +280,7 @@ async function once(
       });
     });
     req.on("error", fail);
-    req.end();
+    req.end(o.body);
   });
 }
 

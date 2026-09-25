@@ -43,6 +43,7 @@ const program = new Command()
   .option("-c, --config <file>", "config file (default: muse-ready.config.{json,yaml,yml} in the current directory)")
   .option("--fail-under <score>", "exit 1 when the overall score is below this", score)
   .option("--probe", "also make read-only GET requests to the declared server to check DNS, TLS, latency, auth errors and list sizes")
+  .option("--probe-mcp", "with an MCP server, also POST JSON-RPC initialize and tools/list (nothing else) to check tool-list stability and stateless support; implies --probe")
   .option("--probe-allow-private", "let --probe reach localhost, private networks and plain HTTP (local testing only)")
   .option("--no-color", "disable colors")
   .option("-v, --verbose", "also list rules that do not apply")
@@ -120,7 +121,7 @@ async function main(): Promise<number> {
   }
 
   let probe;
-  if (opts.probe || opts.probeAllowPrivate) {
+  if (opts.probe || opts.probeAllowPrivate || opts.probeMcp) {
     const connector = connectorFrom(input, config);
     const token = process.env[TOKEN_ENV];
     if (opts.format === "terminal") {
@@ -128,6 +129,7 @@ async function main(): Promise<number> {
     }
     probe = await runProbe(input, connector, {
       authHeaders: token ? authHeaders(token, input, config.probe?.authHeader) : undefined,
+      mcp: opts.probeMcp === true,
       request: opts.probeAllowPrivate ? { allowPrivateNetwork: true, allowInsecureHttp: true } : {},
     });
   }

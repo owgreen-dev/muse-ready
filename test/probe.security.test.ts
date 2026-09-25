@@ -7,7 +7,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { check, renderBadge, renderMarkdown, renderSarif, renderTerminal } from "../src/index.js";
-import { ProbeError, safeRequest, type SafeRequestOptions } from "../src/probe/http.js";
+import { ProbeError, postMcpJsonRpc, safeRequest, type SafeRequestOptions } from "../src/probe/http.js";
 
 type Handler = (req: IncomingMessage, res: ServerResponse) => void;
 interface TestServer {
@@ -198,6 +198,41 @@ describe("probe HTTP client security", () => {
       JSON.stringify(renderBadge(report)),
     ];
     for (const out of rendered) expect(out).not.toContain(TOKEN);
+  });
+});
+
+describe("MCP POST exception (--probe-mcp)", () => {
+  it("only POSTs JSON-RPC initialize and tools/list, and refuses every other MCP method", async () => {
+    const s = await serve((req, res) => {
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ jsonrpc: "2.0", id: JSON.parse(body || "{}").id ?? null, result: { tools: [] } })));
+    });
+    for (const method of ["tools/call", "resources/read", "prompts/get", "sampling/createMessage", "logging/setLevel", "", "TOOLS/LIST"]) {
+      expect((await probeError(postMcpJsonRpc(s.url, { jsonrpc: "2.0", id: 1, method }, local))).code, method).toBe("blocked-method");
+    }
+    expect(s.requests).toHaveLength(0);
+    for (const method of ["initialize", "tools/list"]) expect((await postMcpJsonRpc(s.url, { jsonrpc: "2.0", id: 1, method }, local)).status).toBe(200);
+    expect(s.requests.map((r) => r.method)).toEqual(["POST", "POST"]);
+    // The general client is still GET-only.
+    expect((await probeError(safeRequest(s.url, { ...local, method: "POST" }))).code).toBe("blocked-method");
+  });
+
+  it("never follows a redirect on a POST", async () => {
+    const other = await serve((_, res) => res.end("{}"));
+    const s = await serve((_, res) => res.writeHead(307, { location: `${other.origin}/mcp` }).end());
+    expect((await probeError(postMcpJsonRpc(`${s.origin}/mcp`, { jsonrpc: "2.0", id: 1, method: "tools/list" }, local))).code).toBe("too-many-redirects");
+    expect(other.requests).toHaveLength(0);
+  });
+
+  it("sends no POST at all without --probe-mcp", async () => {
+    const s = await serve((_, res) => res.end("{}"));
+    const dir = mkdtempSync(join(tmpdir(), "muse-ready-mcp-post-"));
+    const file = join(dir, "tools.json");
+    writeFileSync(file, JSON.stringify({ tools: [{ name: "ping", description: "Checks the server is up.", inputSchema: { type: "object" } }] }));
+    await check(file, { config: { connector: { serverUrl: `${s.origin}/mcp`, auth: "bearer" } }, probe: { request: local } });
+    expect(s.requests.length).toBeGreaterThan(0);
+    expect(s.requests.every((r) => r.method === "GET")).toBe(true);
   });
 });
 

@@ -22,6 +22,10 @@ inputs:
     description: Also make read-only GET requests to the declared server. Set MUSE_READY_TOKEN in env to probe secured endpoints.
     required: false
     default: "false"
+  probe-mcp:
+    description: With an MCP server, also POST JSON-RPC initialize and tools/list (nothing else) to check tool-list stability and stateless support. Implies probe.
+    required: false
+    default: "false"
   simulate:
     description: Run scenarios with a model playing the agent. Needs model, model-base-url and MUSE_READY_LLM_KEY in env. Your API is never called.
     required: false

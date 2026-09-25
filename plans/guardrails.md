@@ -60,7 +60,7 @@ Add signs below as you encounter project-specific failure patterns:
 
 ### SIGN-P02: Probe Safety Is Non-Negotiable
 **Trigger:** Writing anything under src/probe/ or any code that sends HTTP requests
-**Instruction:** Only GET, HEAD and OPTIONS. Resolve DNS yourself and refuse private, loopback and link-local addresses on every connection and every redirect. Cap time and bytes. Credentials go only to the exact target origin. Tests use local servers with allowPrivateNetwork explicitly on, except the test that proves private addresses are refused.
+**Instruction:** Only GET, HEAD and OPTIONS, with one approved exception: `postMcpJsonRpc` may POST JSON-RPC `initialize`, `notifications/initialized` and `tools/list` to the declared MCP endpoint under `--probe-mcp`, never following redirects (approved by Oscar 2026-09-25). Never widen that list. Resolve DNS yourself and refuse private, loopback and link-local addresses on every connection and every redirect. Cap time and bytes. Credentials go only to the exact target origin. Tests use local servers with allowPrivateNetwork explicitly on, except the test that proves private addresses are refused.
 **Reason:** muse-ready will be pointed at arbitrary URLs in CI; an unsafe prober is an SSRF tool.
 **Added after:** Setup, 2026-09-23
 

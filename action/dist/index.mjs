@@ -18183,6 +18183,7 @@ async function runRules(input2, rules, config = {}, probe, simulation) {
         target: probe.target,
         requests: probe.requests.map(({ bodySample: _omit, ...r }) => r),
         skipped: probe.skipped,
+        ...probe.mcp ? { mcp: probe.mcp } : {},
         ...probe.error ? { error: probe.error } : {}
       }
     } : {},
@@ -35090,6 +35091,71 @@ var MCP003 = {
   }
 };
 
+// src/rules/mcp004.ts
+function needsAuth(l) {
+  return l?.status === 401 || l?.status === 403;
+}
+var MCP004 = {
+  id: "MCP004",
+  title: "Live: the MCP tool list is stable",
+  category: "spec",
+  severity: "medium",
+  subscores: ["directory", "custom"],
+  appliesTo: ["mcp"],
+  rationale: "Agents cache and pin a server's tool list (Anthropic's API now records each fetched listing), and Muse saves custom connectors as reusable skills. A list that changes between calls breaks them. Checked with --probe-mcp, which sends only initialize and tools/list.",
+  run({ probe }) {
+    const mcp = probe?.mcp;
+    if (!mcp) return { status: "not-applicable", message: "Live check. Run with --probe-mcp to include it." };
+    const { first, second } = mcp.session;
+    if (needsAuth(first) || needsAuth(mcp.stateless)) {
+      return { status: "not-applicable", message: "tools/list needs credentials. Set MUSE_READY_TOKEN to check it." };
+    }
+    if (!mcp.session.initialized) return { status: "fail", message: `The server did not complete initialize: ${mcp.session.error ?? "unknown error"}.` };
+    if (!first?.fingerprint || !second?.fingerprint) {
+      return { status: "fail", message: `tools/list failed: ${first?.error ?? second?.error ?? "unknown error"}.` };
+    }
+    const listings = [first, second, ...mcp.stateless.fingerprint ? [mcp.stateless] : []];
+    const distinct = new Set(listings.map((l) => l.fingerprint));
+    if (distinct.size > 1) {
+      const names = listings.map((l) => l.tools ?? []);
+      const all3 = new Set(names.flat());
+      const unstable = [...all3].filter((n) => names.some((list) => !list.includes(n)));
+      return {
+        status: "fail",
+        message: "The tool list changed between calls.",
+        findings: [{ message: unstable.length ? `Tools that came and went: ${unstable.join(", ")}` : "Same tool names, but descriptions or input schemas changed" }]
+      };
+    }
+    return { status: "pass", message: `The same ${first.tools?.length ?? 0} tools came back on every call.` };
+  }
+};
+
+// src/rules/mcp005.ts
+var MCP005 = {
+  id: "MCP005",
+  title: "Live: answers tools/list without a session",
+  category: "spec",
+  severity: "low",
+  subscores: ["custom"],
+  appliesTo: ["mcp"],
+  rationale: "The MCP 2026-07-28 revision made the core stateless, with no initialize handshake required, so clients can call a server without holding a session. Servers that still require one keep working with older clients. Checked with --probe-mcp, which sends only initialize and tools/list.",
+  run({ probe }) {
+    const mcp = probe?.mcp;
+    if (!mcp) return { status: "not-applicable", message: "Live check. Run with --probe-mcp to include it." };
+    const s = mcp.stateless;
+    if (s.status === 401 || s.status === 403) return { status: "not-applicable", message: "tools/list needs credentials. Set MUSE_READY_TOKEN to check it." };
+    if (s.fingerprint) return { status: "pass", message: `tools/list works without initialize or a session (${s.tools?.length ?? 0} tools).` };
+    if (mcp.session.first?.fingerprint) {
+      return {
+        status: "warn",
+        message: `tools/list only works after initialize${mcp.session.usedSessionId ? " and with a session id" : ""}; MCP 2026-07-28 clients may not send one.`,
+        findings: s.error ? [{ message: `Without a session: ${s.error}` }] : []
+      };
+    }
+    return { status: "not-applicable", message: "tools/list didn't work in either mode; see MCP004." };
+  }
+};
+
 // src/rules/net001.ts
 import { isIP } from "node:net";
 function isPrivateHost(host) {
@@ -35582,6 +35648,8 @@ var BUILTIN_RULES = [
   MCP001,
   MCP002,
   MCP003,
+  MCP004,
+  MCP005,
   DESC001,
   SPEAK001,
   AUTH001,
@@ -35722,6 +35790,7 @@ function renderTerminal(report, opts = {}) {
   if (report.probe) {
     const answered2 = report.probe.requests.filter((r) => r.status !== void 0).length;
     const authed = report.probe.requests.filter((r) => r.authenticated).length;
+    if (report.probe.mcp) lines.push(c.dim("Probe (--probe-mcp): JSON-RPC initialize and tools/list only, sent to the MCP endpoint."));
     lines.push(c.dim(`Probe: ${report.probe.requests.length} GET ${report.probe.requests.length === 1 ? "request" : "requests"} to ${report.probe.target || "(no target)"}, ${answered2} answered${authed ? `, ${authed} authenticated` : ""}.`));
   }
   lines.push("");
@@ -35878,6 +35947,26 @@ async function safeRequest(url, options = {}) {
   if (!SAFE_METHODS2.has(method)) {
     throw new ProbeError("blocked-method", `Refusing ${method}: the probe only sends GET, HEAD and OPTIONS.`);
   }
+  return send(url, method, options);
+}
+var MCP_READ_METHODS = /* @__PURE__ */ new Set(["initialize", "notifications/initialized", "tools/list"]);
+async function postMcpJsonRpc(url, message, options = {}) {
+  if (!message || typeof message.method !== "string" || !MCP_READ_METHODS.has(message.method)) {
+    throw new ProbeError("blocked-method", `Refusing MCP method ${JSON.stringify(message?.method)}: --probe-mcp only sends ${[...MCP_READ_METHODS].join(", ")}.`);
+  }
+  return send(
+    url,
+    "POST",
+    {
+      ...options,
+      maxRedirects: 0,
+      // never follow a redirect with a POST body
+      headers: { "content-type": "application/json", accept: "application/json, text/event-stream", ...options.headers ?? {} }
+    },
+    JSON.stringify(message)
+  );
+}
+async function send(url, method, options, body) {
   const timeoutMs = options.timeoutMs ?? 1e4;
   const maxBytes = options.maxBytes ?? 1024 * 1024;
   const maxRedirects = options.maxRedirects ?? 3;
@@ -35895,7 +35984,7 @@ async function safeRequest(url, options = {}) {
   let current = parseUrl(url, options);
   let currentMethod = method;
   for (; ; ) {
-    const res = await once(current, currentMethod, headers, { deadline, maxBytes, policy, resolver, ca: options.ca, binary: options.binary });
+    const res = await once(current, currentMethod, headers, { deadline, maxBytes, policy, resolver, ca: options.ca, binary: options.binary, body });
     const location2 = res.headers.location;
     if (!REDIRECT_STATUSES.has(res.status) || typeof location2 !== "string") {
       return { ...res, url: redactUrl(current.toString()), redirects, ms: Date.now() - started };
@@ -36008,7 +36097,7 @@ async function once(url, method, headers, o) {
       });
     });
     req.on("error", fail);
-    req.end();
+    req.end(o.body);
   });
 }
 function withDeadline(p, deadline, shown) {
@@ -36091,6 +36180,92 @@ async function discoverOAuth(resource, reason, request) {
     iss: m.authorization_response_iss_parameter_supported === true
   } : { url: as.url, status: as.status, error: as.error ?? `no metadata found (HTTP ${as.status ?? "error"})` };
   return discovery;
+}
+
+// src/probe/mcp.ts
+import { createHash } from "node:crypto";
+var PROTOCOL_VERSION = "2026-07-28";
+var MAX_PAGES = 5;
+function parseJsonRpc(body, id) {
+  const trimmed = body.trim();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    const parsed = JSON.parse(trimmed);
+    return Array.isArray(parsed) ? parsed.find((m) => m?.id === id) : parsed;
+  }
+  for (const line of body.split(/\r?\n/)) {
+    if (!line.startsWith("data:")) continue;
+    try {
+      const msg = JSON.parse(line.slice(5).trim());
+      if (msg?.id === id) return msg;
+    } catch {
+    }
+  }
+  return void 0;
+}
+function fingerprint(tools) {
+  const canonical = (v) => Array.isArray(v) ? v.map(canonical) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canonical(v[k])])) : v;
+  const shape = tools.map((t) => ({ name: t?.name, description: t?.description, inputSchema: t?.inputSchema }));
+  return createHash("sha256").update(JSON.stringify(canonical(shape))).digest("hex").slice(0, 16);
+}
+async function listTools(url, headers, request, nextId) {
+  const tools = [];
+  let cursor;
+  let status;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const id = nextId();
+    try {
+      const r = await postMcpJsonRpc(url, { jsonrpc: "2.0", id, method: "tools/list", ...cursor ? { params: { cursor } } : {} }, { ...request, headers, timeoutMs: 15e3, maxBytes: 1024 * 1024 });
+      status = r.status;
+      if (r.status < 200 || r.status >= 300) return { status, error: `HTTP ${r.status}` };
+      const msg = parseJsonRpc(r.body, id);
+      if (!msg) return { status, error: "no JSON-RPC response" };
+      if (msg.error) return { status, error: `JSON-RPC error ${msg.error.code ?? ""}: ${String(msg.error.message ?? "").slice(0, 120)}` };
+      const pageTools = msg.result?.tools;
+      if (!Array.isArray(pageTools)) return { status, error: "result has no tools array" };
+      tools.push(...pageTools);
+      cursor = typeof msg.result?.nextCursor === "string" && msg.result.nextCursor ? msg.result.nextCursor : void 0;
+      if (!cursor) break;
+    } catch (err) {
+      return { status, error: err instanceof ProbeError ? err.message : "request failed" };
+    }
+  }
+  return { status, tools: tools.map((t) => String(t?.name)), fingerprint: fingerprint(tools) };
+}
+async function probeMcp(url, authHeaders2, request) {
+  let id = 0;
+  const nextId = () => ++id;
+  const auth = authHeaders2 ?? {};
+  const req = { ...request, credentialHeaders: Object.keys(auth) };
+  const stateless = await listTools(url, { ...auth, "mcp-protocol-version": PROTOCOL_VERSION }, req, nextId);
+  const session = { initialized: false, usedSessionId: false };
+  try {
+    const initId = nextId();
+    const init = await postMcpJsonRpc(
+      url,
+      { jsonrpc: "2.0", id: initId, method: "initialize", params: { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "muse-ready", version: "probe" } } },
+      { ...req, headers: auth, timeoutMs: 15e3, maxBytes: 256 * 1024 }
+    );
+    const msg = init.status >= 200 && init.status < 300 ? parseJsonRpc(init.body, initId) : void 0;
+    if (!msg?.result) {
+      session.error = init.status >= 300 ? `initialize returned HTTP ${init.status}` : msg?.error ? `initialize error: ${String(msg.error.message ?? "").slice(0, 120)}` : "initialize returned no result";
+      return { stateless, session };
+    }
+    session.initialized = true;
+    session.protocolVersion = typeof msg.result.protocolVersion === "string" ? msg.result.protocolVersion : void 0;
+    const sid = init.headers["mcp-session-id"];
+    const headers = {
+      ...auth,
+      "mcp-protocol-version": session.protocolVersion ?? PROTOCOL_VERSION,
+      ...typeof sid === "string" && sid ? { "mcp-session-id": sid } : {}
+    };
+    session.usedSessionId = typeof sid === "string" && !!sid;
+    await postMcpJsonRpc(url, { jsonrpc: "2.0", method: "notifications/initialized" }, { ...req, headers, timeoutMs: 15e3, maxBytes: 64 * 1024 }).catch(() => void 0);
+    session.first = await listTools(url, headers, req, nextId);
+    session.second = await listTools(url, headers, req, nextId);
+  } catch (err) {
+    session.error = err instanceof ProbeError ? err.message : "request failed";
+  }
+  return { stateless, session };
 }
 
 // src/probe/run.ts
@@ -36200,6 +36375,7 @@ async function runProbe(input2, connector, opts = {}) {
   if (input2.kind === "mcp") {
     const r = await call(target.url, void 0, void 0, opts, BODY_SAMPLE_BYTES);
     result.requests.push(r);
+    if (opts.mcp) result.mcp = await probeMcp(target.url, opts.authHeaders, opts.request ?? {});
   } else {
     const candidates = [];
     for (const o of operations(input2.resolved)) {
@@ -36702,6 +36878,8 @@ async function main(env = process.env) {
   if (failUnder !== void 0 && !(failUnder >= 0 && failUnder <= 100)) throw new InputError('Input "fail-under" must be a number from 0 to 100.');
   const probeRaw = input(env, "probe").toLowerCase() || "false";
   if (!["true", "false"].includes(probeRaw)) throw new InputError('Input "probe" must be true or false.');
+  const probeMcpRaw = input(env, "probe-mcp").toLowerCase() || "false";
+  if (!["true", "false"].includes(probeMcpRaw)) throw new InputError('Input "probe-mcp" must be true or false.');
   const at = (p) => /^https?:\/\//i.test(p) ? p : resolve3(workspace, p);
   const loadedConfig = await loadConfig(configPath ? at(configPath) : void 0, workspace);
   const profileInput = input(env, "profile");
@@ -36710,7 +36888,10 @@ async function main(env = process.env) {
   const source = at(spec);
   const loaded = await loadInput(source);
   const token = env[TOKEN_ENV];
-  const probe = probeRaw === "true" ? await runProbe(loaded, connectorFrom(loaded, config), { authHeaders: token ? authHeaders(token, loaded, config.probe?.authHeader) : void 0 }) : void 0;
+  const probe = probeRaw === "true" || probeMcpRaw === "true" ? await runProbe(loaded, connectorFrom(loaded, config), {
+    authHeaders: token ? authHeaders(token, loaded, config.probe?.authHeader) : void 0,
+    mcp: probeMcpRaw === "true"
+  }) : void 0;
   const simulateRaw = input(env, "simulate").toLowerCase() || "false";
   if (!["true", "false"].includes(simulateRaw)) throw new InputError('Input "simulate" must be true or false.');
   const simulation = simulateRaw === "true" ? await runSimulation(loaded, config, {

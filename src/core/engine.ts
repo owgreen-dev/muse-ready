@@ -78,6 +78,7 @@ export async function runRules(input: LoadedInput, rules: Rule[], config: Config
             target: probe.target,
             requests: probe.requests.map(({ bodySample: _omit, ...r }) => r),
             skipped: probe.skipped,
+            ...(probe.mcp ? { mcp: probe.mcp } : {}),
             ...(probe.error ? { error: probe.error } : {}),
           },
         }

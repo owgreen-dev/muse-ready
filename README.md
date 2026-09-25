@@ -100,7 +100,7 @@ By default muse-ready only reads your document. With `--probe` it also calls the
 The latency and size thresholds are provisional because Muse's limits are undocumented.
 
 **Exactly what it sends:**
-- Only `GET` requests: at most 8 documented operations, a repeat of each secured one without credentials, and a few repeats for latency. That's 16 requests at the most. It never sends `POST`, `PUT`, `PATCH` or `DELETE`, and a test proves it.
+- Only `GET` requests (unless you add `--probe-mcp`, described below): at most 8 documented operations, a repeat of each secured one without credentials, and a few repeats for latency. That's 16 requests at the most. It never sends `POST`, `PUT`, `PATCH` or `DELETE`, and a test proves it.
 - It calls only operations whose path and required query parameters have an `example` or `default`, and skips anything with a request body.
 - For OAuth servers, and for MCP servers whose auth type isn't set, it also fetches the public discovery documents: `/.well-known/oauth-protected-resource` and the authorization server's metadata. These are plain GETs, sent without credentials.
 - It skips GETs named like actions, such as `GET /logout`, because they can still have side effects. The report lists everything it skipped and why.
@@ -119,6 +119,12 @@ MUSE_READY_TOKEN=... npx muse-ready openapi.yaml --probe
 - The header comes from `probe.authHeader` in the config, else from the spec's static scheme (API-key header, bearer or basic), else `Authorization: Bearer`.
 - Each secured operation is also called once without the token, so ERR002 can check that it is refused.
 - The token never appears in any report. Tests check every output format against an API that echoes it back.
+
+**MCP servers (`--probe-mcp`).** An MCP server can only be asked for its tools with a POST, so this is a separate opt-in. It implies `--probe`.
+- It sends JSON-RPC `initialize`, `notifications/initialized` and `tools/list` to the declared MCP endpoint, and nothing else. `tools/call` and every other method are refused before a connection opens, and tests prove it.
+- It first asks for the tool list with no session (MCP 2026-07-28 made the core stateless). Then it does a normal handshake and asks twice more.
+- MCP004 fails if the tool list changes between calls. MCP005 warns if the server only works inside a session.
+- A POST never follows a redirect. The same address, size and time limits as every other probe request apply. `MUSE_READY_TOKEN` is attached if you set it.
 
 `--probe-allow-private` lifts the private-address and HTTPS restrictions so you can test an API on your own machine. Don't use it in CI.
 
@@ -234,6 +240,8 @@ console.log(report.score.overall, report.gate.passed);
 | [MCP001](#mcp001) | MCP tool definitions are well-formed | high | mcp | directory, custom |
 | [MCP002](#mcp002) | MCP tools declare a human-readable title | medium | mcp | directory |
 | [MCP003](#mcp003) | MCP tools declare an output schema | low | mcp | custom |
+| [MCP004](#mcp004) | Live: the MCP tool list is stable | medium | mcp | directory, custom |
+| [MCP005](#mcp005) | Live: answers tools/list without a session | low | mcp | custom |
 | [DESC001](#desc001) | Every operation or tool is described | high | openapi, mcp | directory, custom |
 | [SPEAK001](#speak001) | Responses include something short enough to say aloud | medium | openapi | custom |
 | [AUTH001](#auth001) | Accepts a static bearer token or API-key header | critical | openapi, mcp | directory, custom |
@@ -274,6 +282,14 @@ console.log(report.score.overall, report.gate.passed);
 ### MCP003
 
 **MCP tools declare an output schema.** The MCP spec lets tools declare an outputSchema and return matching structuredContent, so agents can rely on result fields instead of parsing text. Recommended, not required; off in the Muse profiles, which publish no such requirement.
+
+### MCP004
+
+**Live: the MCP tool list is stable.** Agents cache and pin a server's tool list (Anthropic's API now records each fetched listing), and Muse saves custom connectors as reusable skills. A list that changes between calls breaks them. Checked with --probe-mcp, which sends only initialize and tools/list.
+
+### MCP005
+
+**Live: answers tools/list without a session.** The MCP 2026-07-28 revision made the core stateless, with no initialize handshake required, so clients can call a server without holding a session. Servers that still require one keep working with older clients. Checked with --probe-mcp, which sends only initialize and tools/list.
 
 ### DESC001
 
