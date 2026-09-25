@@ -64,7 +64,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: owgreen-dev/muse-ready@ca323056589fadc86f7711c173c59b2b2ff9e80a # v0.3.1
+      - uses: owgreen-dev/muse-ready@7c7eaa4ad6e11a93ff6fcef11ca6fb49f306249d # v0.4.0
         with:
           spec: openapi.yaml
           fail-under: "80"
