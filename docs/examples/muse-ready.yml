@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
 
       - id: muse
-        uses: owgreen-dev/muse-ready@7c7eaa4ad6e11a93ff6fcef11ca6fb49f306249d # v0.4.0
+        uses: owgreen-dev/muse-ready@fda7e37eeab31a9880db761cfcd7f3f0437ff581 # v0.4.1
         with:
           spec: openapi.yaml
           fail-under: "80"
