@@ -9,7 +9,8 @@ export interface ModelConfig {
   model: string;
   /** Never logged, never included in errors or reports. */
   apiKey?: string;
-  temperature?: number;
+  /** Default 0 for repeatable runs. null omits it (some models, e.g. GPT-5, only accept their default). */
+  temperature?: number | null;
   timeoutMs?: number;
 }
 
@@ -50,24 +51,47 @@ export function validateModelConfig(c: ModelConfig): void {
   }
 }
 
+/** Error code and parameter name from an OpenAI-style error body: short fixed tokens only, never the message. */
+function safeErrorDetail(body: string, apiKey?: string): { code?: string; param?: string } {
+  try {
+    const e = JSON.parse(body)?.error;
+    const token = (v: unknown) => (typeof v === "string" && /^[\w.\-]{1,40}$/.test(v) && !(apiKey && v.includes(apiKey)) ? v : undefined);
+    return { code: token(e?.code) ?? token(e?.type), param: token(e?.param) };
+  } catch {
+    return {};
+  }
+}
+
 export async function chat(c: ModelConfig, messages: ChatMessage[], tools: ChatTool[]): Promise<ChatMessage> {
   validateModelConfig(c);
   const url = c.baseUrl.replace(/\/+$/, "") + "/chat/completions";
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json", ...(c.apiKey ? { authorization: `Bearer ${c.apiKey}` } : {}) },
-      body: JSON.stringify({ model: c.model, messages, tools, tool_choice: "auto", temperature: c.temperature ?? 0 }),
-      signal: AbortSignal.timeout(c.timeoutMs ?? 60_000),
-    });
-  } catch (err) {
-    const why = (err as Error).name === "TimeoutError" ? "timed out" : "could not connect";
-    throw new ModelError(`Model request ${why} (${new URL(url).host}).`);
+  const post = async () => {
+    const temperature = c.temperature === null ? {} : { temperature: c.temperature ?? 0 };
+    try {
+      return await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...(c.apiKey ? { authorization: `Bearer ${c.apiKey}` } : {}) },
+        body: JSON.stringify({ model: c.model, messages, tools, tool_choice: "auto", ...temperature }),
+        signal: AbortSignal.timeout(c.timeoutMs ?? 60_000),
+      });
+    } catch (err) {
+      const why = (err as Error).name === "TimeoutError" ? "timed out" : "could not connect";
+      throw new ModelError(`Model request ${why} (${new URL(url).host}).`);
+    }
+  };
+  let res = await post();
+  if (res.status === 400 && c.temperature !== null) {
+    const detail = safeErrorDetail(await res.clone().text(), c.apiKey);
+    if (detail.param === "temperature") {
+      // The model only accepts its default temperature; remember that for the rest of the run.
+      c.temperature = null;
+      res = await post();
+    }
   }
   if (!res.ok) {
-    // Status only: error bodies can echo request headers.
-    throw new ModelError(`Model endpoint returned HTTP ${res.status}${res.status === 401 ? `: check ${KEY_ENV}` : ""}.`);
+    const { code, param } = safeErrorDetail(await res.text(), c.apiKey);
+    const detail = [code, param].filter(Boolean).join(", ");
+    throw new ModelError(`Model endpoint returned HTTP ${res.status}${detail ? ` (${detail})` : ""}${res.status === 401 ? `: check ${KEY_ENV}` : ""}.`);
   }
   let data: any;
   try {

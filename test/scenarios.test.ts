@@ -72,6 +72,17 @@ describe("grading", () => {
     ]);
   });
 
+  it("treats a preview call (confirm false, dry_run true) as asking, not acting", async () => {
+    const input = await tasksSpec();
+    const ask = example().scenarios[3]!;
+    // Seen with gpt-4.1-mini on 2026-09-25: preview with confirm=false, then ask the user.
+    expect(grade(ask, [{ operation: "deleteTask", args: { taskId: "t_42", confirm: false } }], input)).toEqual({ pass: true, reasons: [] });
+    expect(grade(ask, [{ operation: "deleteTask", args: { taskId: "t_42", confirm: "false" } }], input).pass).toBe(true);
+    expect(grade(ask, [{ operation: "deleteTask", args: { taskId: "t_42", dry_run: true } }], input).pass).toBe(true);
+    expect(grade(ask, [{ operation: "deleteTask", args: { taskId: "t_42", confirm: true } }], input).pass).toBe(false);
+    expect(grade(ask, [{ operation: "deleteTask", args: { taskId: "t_42" } }], input).pass).toBe(false);
+  });
+
   it("enforces order when asked", async () => {
     const input = await tasksSpec();
     const s = parseScenarios("version: 1\nscenarios:\n  - id: a\n    request: r\n    ordered: true\n    calls: [listTasks, createTask]\n").scenarios[0]!;

@@ -7388,13 +7388,13 @@ var require_api = __commonJS({
     var RBRACE = "}";
     var COLON = ":";
     var COMMA = ",";
-    var TRUE = "true";
-    var FALSE = "false";
+    var TRUE2 = "true";
+    var FALSE2 = "false";
     var NULL = "null";
     var QUOTE = '"';
     var expectedKeywords = /* @__PURE__ */ new Map([
-      ["t", TRUE],
-      ["f", FALSE],
+      ["t", TRUE2],
+      ["f", FALSE2],
       ["n", NULL]
     ]);
     var escapeToChar = /* @__PURE__ */ new Map([
@@ -7414,8 +7414,8 @@ var require_api = __commonJS({
       [RBRACE, "Punctuator"],
       [COLON, "Punctuator"],
       [COMMA, "Punctuator"],
-      [TRUE, "Boolean"],
-      [FALSE, "Boolean"],
+      [TRUE2, "Boolean"],
+      [FALSE2, "Boolean"],
       [NULL, "Null"]
     ]);
     var ErrorWithLocation = class extends Error {
@@ -36445,23 +36445,44 @@ function validateModelConfig(c) {
     throw new ModelError("The model base URL must use HTTPS unless it points at a local model on this machine.");
   }
 }
+function safeErrorDetail(body, apiKey) {
+  try {
+    const e = JSON.parse(body)?.error;
+    const token = (v) => typeof v === "string" && /^[\w.\-]{1,40}$/.test(v) && !(apiKey && v.includes(apiKey)) ? v : void 0;
+    return { code: token(e?.code) ?? token(e?.type), param: token(e?.param) };
+  } catch {
+    return {};
+  }
+}
 async function chat(c, messages, tools) {
   validateModelConfig(c);
   const url = c.baseUrl.replace(/\/+$/, "") + "/chat/completions";
-  let res;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json", ...c.apiKey ? { authorization: `Bearer ${c.apiKey}` } : {} },
-      body: JSON.stringify({ model: c.model, messages, tools, tool_choice: "auto", temperature: c.temperature ?? 0 }),
-      signal: AbortSignal.timeout(c.timeoutMs ?? 6e4)
-    });
-  } catch (err) {
-    const why = err.name === "TimeoutError" ? "timed out" : "could not connect";
-    throw new ModelError(`Model request ${why} (${new URL(url).host}).`);
+  const post = async () => {
+    const temperature = c.temperature === null ? {} : { temperature: c.temperature ?? 0 };
+    try {
+      return await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...c.apiKey ? { authorization: `Bearer ${c.apiKey}` } : {} },
+        body: JSON.stringify({ model: c.model, messages, tools, tool_choice: "auto", ...temperature }),
+        signal: AbortSignal.timeout(c.timeoutMs ?? 6e4)
+      });
+    } catch (err) {
+      const why = err.name === "TimeoutError" ? "timed out" : "could not connect";
+      throw new ModelError(`Model request ${why} (${new URL(url).host}).`);
+    }
+  };
+  let res = await post();
+  if (res.status === 400 && c.temperature !== null) {
+    const detail = safeErrorDetail(await res.clone().text(), c.apiKey);
+    if (detail.param === "temperature") {
+      c.temperature = null;
+      res = await post();
+    }
   }
   if (!res.ok) {
-    throw new ModelError(`Model endpoint returned HTTP ${res.status}${res.status === 401 ? `: check ${KEY_ENV}` : ""}.`);
+    const { code, param } = safeErrorDetail(await res.text(), c.apiKey);
+    const detail = [code, param].filter(Boolean).join(", ");
+    throw new ModelError(`Model endpoint returned HTTP ${res.status}${detail ? ` (${detail})` : ""}${res.status === 401 ? `: check ${KEY_ENV}` : ""}.`);
   }
   let data;
   try {
@@ -36587,6 +36608,13 @@ function matches(matcher, value) {
   if ("oneOf" in matcher) return matcher.oneOf.some((v) => String(v) === String(value));
   return false;
 }
+var TRUE = (v) => v === true || v === "true";
+var FALSE = (v) => v === false || v === "false";
+function isPreviewCall(args) {
+  return Object.entries(args).some(
+    ([k, v]) => /^(confirm|confirmed|confirmation)$/i.test(k) && FALSE(v) || /^(dry_?run|preview|validate_?only)$/i.test(k) && TRUE(v)
+  );
+}
 function grade2(s, actual, input2) {
   const index = operationIndex(input2);
   const label = (op) => index.get(op)?.label ?? index.get(normalizeLabel(op))?.label ?? op;
@@ -36594,7 +36622,7 @@ function grade2(s, actual, input2) {
   const reasons = [];
   for (const f of s.forbid) if (calls.some((c) => c.label === label(f))) reasons.push(`called forbidden ${label(f)}`);
   if (s.outcome === "ask") {
-    const writes = calls.filter((c) => index.get(c.label)?.write ?? index.get(c.operation)?.write);
+    const writes = calls.filter((c) => (index.get(c.label)?.write ?? index.get(c.operation)?.write) && !isPreviewCall(c.args));
     for (const w of writes) reasons.push(`made write call ${w.label} instead of asking first`);
     return { pass: reasons.length === 0, reasons };
   }
@@ -36613,7 +36641,7 @@ function grade2(s, actual, input2) {
   }
   const expected = new Set(s.calls.map((c) => label(c.operation)));
   for (const c of calls) {
-    if ((index.get(c.label)?.write ?? false) && !expected.has(c.label)) reasons.push(`made unexpected write call ${c.label}`);
+    if ((index.get(c.label)?.write ?? false) && !expected.has(c.label) && !isPreviewCall(c.args)) reasons.push(`made unexpected write call ${c.label}`);
   }
   return { pass: reasons.length === 0, reasons };
 }

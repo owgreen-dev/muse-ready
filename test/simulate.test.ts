@@ -59,6 +59,47 @@ describe("simulation", () => {
     expect(JSON.stringify(bad)).not.toContain(KEY);
   });
 
+  it("retries without temperature when a model rejects it, and remembers that (seen with gpt-5-mini)", async () => {
+    const seen: any[] = [];
+    const server = (await import("node:http")).createServer((req, res) => {
+      let raw = "";
+      req.on("data", (c) => (raw += c));
+      req.on("end", () => {
+        const body = JSON.parse(raw);
+        seen.push(body);
+        if ("temperature" in body) {
+          return void res.writeHead(400, { "content-type": "application/json" }).end(JSON.stringify({ error: { message: "Unsupported value: 'temperature'", type: "invalid_request_error", param: "temperature", code: "unsupported_value" } }));
+        }
+        res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ choices: [{ message: careful(body.messages, body.tools) }] }));
+      });
+    });
+    await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+    try {
+      const baseUrl = `http://127.0.0.1:${(server.address() as import("node:net").AddressInfo).port}/v1`;
+      const r = await simulate(await tasks(), scenarios().slice(0, 2), { model: { baseUrl, model: "fake-5" }, runs: 1 });
+      expect(r.passRate).toBe(100);
+      expect(seen.filter((b) => "temperature" in b)).toHaveLength(1); // rejected once, never sent again
+    } finally {
+      server.close();
+    }
+  });
+
+  it("reports the provider's error code and parameter, but never message text or the key", async () => {
+    const server = (await import("node:http")).createServer((_, res) =>
+      res.writeHead(400, { "content-type": "application/json" }).end(JSON.stringify({ error: { message: `bad request for ${KEY}`, code: KEY, type: "invalid_request_error", param: "tools" } })),
+    );
+    await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+    try {
+      const baseUrl = `http://127.0.0.1:${(server.address() as import("node:net").AddressInfo).port}/v1`;
+      const r = await simulate(await tasks(), scenarios().slice(0, 1), { model: { baseUrl, model: "fake-1", apiKey: KEY }, runs: 1 });
+      const err = r.scenarios[0]!.runs[0]!.reasons[0]!;
+      expect(err).toBe("simulation error: Model endpoint returned HTTP 400 (invalid_request_error, tools).");
+      expect(JSON.stringify(r)).not.toContain(KEY);
+    } finally {
+      server.close();
+    }
+  });
+
   it("stops an agent that never finishes", async () => {
     const model = await fakeModel(() => call("getTask", { taskId: "t_1" }));
     const r = await simulate(await tasks(), scenarios().slice(0, 1), { model: { baseUrl: model.baseUrl, model: "fake-1" }, runs: 1, maxTurns: 3 });
