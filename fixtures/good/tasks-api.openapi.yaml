@@ -6,10 +6,18 @@ info:
   termsOfService: https://tasks.example.com/terms
   contact:
     email: support@tasks.example.com
+    url: https://tasks.example.com
   x-logo:
     url: https://tasks.example.com/logo.png
   x-muse:
+    company: Example Tasks Inc.
     privacyPolicyUrl: https://tasks.example.com/privacy
+    examplePrompts:
+      - What's on my team's task list?
+      - Add "renew the domain" to our tasks
+      - Mark the launch checklist task as done
+externalDocs:
+  url: https://tasks.example.com/docs/api
 servers:
   - url: https://api.tasks.example.com/v1
 security:

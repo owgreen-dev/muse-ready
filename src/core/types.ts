@@ -34,6 +34,13 @@ export interface RuleOutcome {
 export interface ConnectorMeta {
   name?: string;
   description?: string;
+  company?: string;
+  websiteUrl?: string;
+  supportEmail?: string;
+  docsUrl?: string;
+  /** Example requests a user might make, shown with the listing. */
+  examplePrompts?: string[];
+  /** 512x512 PNG or JPEG. */
   iconUrl?: string;
   privacyPolicyUrl?: string;
   termsUrl?: string;
@@ -102,6 +109,8 @@ export interface ProbeResult {
   skipped: { operation: string; reason: string }[];
   /** Set when the probe could not start, e.g. no server URL. */
   error?: string;
+  /** The listing icon, fetched when connector.iconUrl is set. */
+  icon?: { url: string; status?: number; contentType?: string; format?: "png" | "jpeg"; width?: number; height?: number; error?: string };
 }
 
 export interface RuleContext {

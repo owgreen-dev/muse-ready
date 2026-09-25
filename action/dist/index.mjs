@@ -18004,14 +18004,16 @@ var PROFILES = {
     title: "Claude connectors",
     description: "Claude custom connectors and the Anthropic Connectors Directory (remote MCP).",
     goal: "submitting to the Claude Connectors Directory",
-    rules: { AUTH001: "off", AUTH002: "high", MCP002: "high", SCOPE002: "critical", META002: "off", IDEM001: "low" },
+    rules: { AUTH001: "off", AUTH002: "high", MCP002: "high", SCOPE002: "critical", META001: "medium", META002: "off", META003: "low", IDEM001: "low" },
     reasons: {
       AUTH001: "Claude connectors use OAuth for authenticated services, so a static header is not required (claude.com/docs/connectors/building/submission).",
       AUTH002: "OAuth is the expected path, so a broken OAuth setup is a real blocker.",
       MCP002: "The directory requires every tool to have a title (claude.com/docs/connectors/building/submission).",
       SCOPE002: "The directory requires readOnlyHint or destructiveHint on every tool (claude.com/docs/connectors/building/submission).",
       META002: "Claude connectors are MCP servers, not OpenAPI documents fetched by URL.",
-      IDEM001: "Useful, but not a directory requirement."
+      IDEM001: "Useful, but not a directory requirement.",
+      META001: "The listing fields follow Muse's form; Anthropic's directory asks for similar material, so gaps still matter.",
+      META003: "The 512x512 icon size comes from Muse's form, not Anthropic's."
     }
   },
   "openai-apps": {
@@ -18019,12 +18021,14 @@ var PROFILES = {
     title: "ChatGPT Apps",
     description: "ChatGPT apps built with the OpenAI Apps SDK (MCP server plus OAuth 2.1).",
     goal: "submitting as a ChatGPT app",
-    rules: { AUTH001: "off", AUTH002: "high", MCP002: "medium", META002: "off" },
+    rules: { AUTH001: "off", AUTH002: "high", MCP002: "medium", META001: "medium", META002: "off", META003: "low" },
     reasons: {
       AUTH001: "Apps SDK authentication is OAuth 2.1 with ChatGPT as the client, so static headers are not the path (developers.openai.com/plugins/build/auth).",
       AUTH002: "OAuth 2.1 with discovery and client registration (DCR or CIMD) is required for authenticated apps.",
       MCP002: "Tool titles help ChatGPT show what an app is doing; recommended, not verified as required.",
-      META002: "Apps are MCP servers, not OpenAPI documents fetched by URL."
+      META002: "Apps are MCP servers, not OpenAPI documents fetched by URL.",
+      META001: "The listing fields follow Muse's form; ChatGPT app submission asks for similar material.",
+      META003: "The 512x512 icon size comes from Muse's form."
     }
   },
   gemini: {
@@ -18032,8 +18036,9 @@ var PROFILES = {
     title: "Gemini CLI",
     description: "Remote MCP servers used from Gemini CLI.",
     goal: "using this from Gemini CLI",
-    rules: { AUTH001: "low", AUTH002: "medium", MCP002: "low", META001: "off", META002: "off" },
+    rules: { AUTH001: "low", AUTH002: "medium", MCP002: "low", META001: "off", META002: "off", META003: "off" },
     reasons: {
+      META003: "No directory listing, so no icon.",
       AUTH001: "Gemini CLI supports OAuth discovery as well as static headers, so static auth is optional (github.com/google-gemini/gemini-cli docs/tools/mcp-server.md).",
       AUTH002: "OAuth discovery is supported; a broken setup matters but has a header fallback.",
       MCP002: "Not required by Gemini CLI.",
@@ -18046,8 +18051,9 @@ var PROFILES = {
     title: "Generic MCP",
     description: "Any MCP client following the MCP authorization spec (OAuth 2.1 recommended for HTTP transports).",
     goal: "publishing this MCP server",
-    rules: { AUTH001: "low", AUTH002: "medium", MCP002: "medium", META001: "off", META002: "off" },
+    rules: { AUTH001: "low", AUTH002: "medium", MCP002: "medium", META001: "off", META002: "off", META003: "off" },
     reasons: {
+      META003: "No directory listing, so no icon.",
       AUTH001: "The MCP spec recommends OAuth 2.1 for HTTP transports; many clients also accept static headers.",
       AUTH002: "OAuth is the spec's path, so it should work.",
       MCP002: "Titles are optional in the MCP spec but help every client.",
@@ -18107,8 +18113,17 @@ var RULESET_DATE = "2026-09-23";
 
 // src/core/engine.ts
 function connectorFrom(input2, config) {
-  const fromSpec = input2.kind === "openapi" ? input2.doc?.info?.["x-muse"] ?? {} : {};
-  return { ...fromSpec, ...config.connector ?? {} };
+  const info = input2.kind === "openapi" ? input2.doc?.info ?? {} : {};
+  const standard = {
+    ...typeof info.title === "string" ? { name: info.title } : {},
+    ...typeof info.description === "string" ? { description: info.description } : {},
+    ...typeof info.contact?.url === "string" ? { websiteUrl: info.contact.url } : {},
+    ...typeof info.contact?.email === "string" ? { supportEmail: info.contact.email } : {},
+    ...typeof info.termsOfService === "string" ? { termsUrl: info.termsOfService } : {},
+    ...typeof info["x-logo"]?.url === "string" ? { iconUrl: info["x-logo"].url } : {},
+    ...input2.kind === "openapi" && typeof input2.doc?.externalDocs?.url === "string" ? { docsUrl: input2.doc.externalDocs.url } : {}
+  };
+  return { ...standard, ...info["x-muse"] ?? {}, ...config.connector ?? {} };
 }
 async function runRules(input2, rules, config = {}, probe, simulation) {
   const ctx = { input: input2, connector: connectorFrom(input2, config), probe };
@@ -35073,6 +35088,7 @@ var NET001 = {
 
 // src/rules/meta001.ts
 var MIN_DESCRIPTION = 40;
+var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function str(v) {
   return typeof v === "string" && v.trim() ? v.trim() : void 0;
 }
@@ -35083,36 +35099,42 @@ var META001 = {
   severity: "high",
   subscores: ["directory"],
   appliesTo: ["openapi", "mcp"],
-  rationale: "Directory submissions are reviewed for 'functional, security and legal requirements' (muse.ai/platform). Meta publishes no checklist yet, so this asks for what every app directory requires: name, description, icon, privacy policy and terms.",
-  run({ input: input2, connector }) {
-    const info = input2.kind === "openapi" ? input2.doc?.info ?? {} : {};
+  rationale: "Muse's directory submission form asks for a name, description, website, example prompts, a 512x512 icon, a support email, privacy policy, terms of service and a documentation link (Manufact walkthrough of the form, 22-24 Sep 2026; third-party, not Meta docs). Set missing fields under connector in muse-ready.config.json or info.x-muse.",
+  run({ connector: c }) {
     const fails = [];
     const warns = [];
-    const muse = ["info", "x-muse"];
-    const name = str(connector.name) ?? str(info.title);
-    if (!name) fails.push({ message: "No connector name (info.title or connector.name)", pointer: ["info"] });
-    const description = str(connector.description) ?? str(info.description);
-    if (!description) fails.push({ message: "No connector description (info.description or connector.description)", pointer: ["info"] });
-    else if (description.length < MIN_DESCRIPTION) warns.push({ message: `Description is only ${description.length} characters`, pointer: ["info", "description"] });
-    const links = [
-      ["privacy policy URL (connector.privacyPolicyUrl)", str(connector.privacyPolicyUrl), "fail"],
-      ["terms of service URL (info.termsOfService or connector.termsUrl)", str(connector.termsUrl) ?? str(info.termsOfService), "fail"],
-      ["icon URL (connector.iconUrl or info.x-logo.url)", str(connector.iconUrl) ?? str(info["x-logo"]?.url), "warn"]
-    ];
-    for (const [label, value, level] of links) {
-      if (!value) {
-        (level === "fail" ? fails : warns).push({ message: `No ${label}`, pointer: muse });
-        continue;
-      }
-      const problem = checkPublicUrl(value);
-      if (problem) warns.push({ message: `${label}: ${problem.message}`, pointer: muse });
-    }
-    if (input2.kind === "openapi" && !str(info.contact?.email) && !str(info.contact?.url)) {
-      warns.push({ message: "No support contact (info.contact.email or info.contact.url)", pointer: ["info"] });
+    const where = ["info"];
+    const need = (ok, label) => ok || fails.push({ message: `No ${label}`, pointer: where });
+    need(!!str(c.name), "connector name (info.title or connector.name)");
+    const description = str(c.description);
+    need(!!description, "description (info.description or connector.description)");
+    if (description && description.length < MIN_DESCRIPTION) warns.push({ message: `Description is only ${description.length} characters`, pointer: where });
+    need(!!str(c.websiteUrl), "website (info.contact.url or connector.websiteUrl)");
+    const prompts = Array.isArray(c.examplePrompts) ? c.examplePrompts.filter((p) => typeof p === "string" && p.trim()) : [];
+    need(prompts.length > 0, "example prompts (connector.examplePrompts)");
+    if (prompts.length > 0 && prompts.length < 3) warns.push({ message: `Only ${plural(prompts.length, "example prompt")}; three or more show the range of what it does`, pointer: where });
+    need(!!str(c.iconUrl), "icon URL, 512x512 (connector.iconUrl or info.x-logo.url)");
+    const email = str(c.supportEmail);
+    need(!!email, "support email (info.contact.email or connector.supportEmail)");
+    if (email && !EMAIL.test(email)) warns.push({ message: `Support email "${email}" doesn't look like an email address`, pointer: where });
+    need(!!str(c.privacyPolicyUrl), "privacy policy URL (connector.privacyPolicyUrl)");
+    need(!!str(c.termsUrl), "terms of service URL (info.termsOfService or connector.termsUrl)");
+    need(!!str(c.docsUrl), "documentation URL (externalDocs.url or connector.docsUrl)");
+    if (!str(c.company)) warns.push({ message: "No company name (connector.company)", pointer: where });
+    for (const [label, value] of [
+      ["website", c.websiteUrl],
+      ["icon URL", c.iconUrl],
+      ["privacy policy URL", c.privacyPolicyUrl],
+      ["terms URL", c.termsUrl],
+      ["documentation URL", c.docsUrl]
+    ]) {
+      const v = str(value);
+      const problem = v ? checkPublicUrl(v) : void 0;
+      if (problem) warns.push({ message: `${label}: ${problem.message}`, pointer: where });
     }
     const recommended = warns.length ? `, ${warns.length} recommended` : "";
     return aggregate(fails, warns, {
-      pass: "Name, description, icon, privacy policy and terms are all present.",
+      pass: "Every field the Muse submission form asks for is present.",
       fail: `${plural(fails.length, "required field")} missing${recommended}.`,
       warn: `No required fields missing, ${warns.length} recommended.`
     });
@@ -35138,6 +35160,30 @@ var META002 = {
     const problem = checkPublicUrl(input2.source);
     if (problem) return { status: problem.level, message: problem.message };
     return { status: "pass", message: "Fetched without credentials over public HTTPS." };
+  }
+};
+
+// src/rules/meta003.ts
+var META003 = {
+  id: "META003",
+  title: "Live: listing icon is a reachable 512x512 image",
+  category: "metadata",
+  severity: "medium",
+  subscores: ["directory"],
+  appliesTo: ["openapi", "mcp"],
+  rationale: "Muse's submission form asks for a 512x512 icon (Manufact walkthrough, 22-24 Sep 2026; third-party). Checked live with --probe by reading the image header; nothing is uploaded anywhere.",
+  run({ probe, connector }) {
+    if (!probe) return { status: "not-applicable", message: "Live check. Run with --probe to include it." };
+    if (!connector.iconUrl) return { status: "not-applicable", message: "No icon URL set." };
+    const icon = probe.icon;
+    if (!icon) return { status: "not-applicable", message: "The icon was not fetched." };
+    if (icon.error) return { status: "fail", message: `Could not fetch the icon: ${icon.error}` };
+    if (icon.status === void 0 || icon.status >= 300) return { status: "fail", message: `The icon URL returned HTTP ${icon.status}.` };
+    if (!icon.format) return { status: "fail", message: `The icon is not a PNG or JPEG (content-type ${icon.contentType || "unknown"}).` };
+    if (icon.width !== 512 || icon.height !== 512) {
+      return { status: "warn", message: `The icon is ${icon.width}x${icon.height} ${icon.format.toUpperCase()}; the form asks for 512x512.` };
+    }
+    return { status: "pass", message: `The icon is a 512x512 ${icon.format.toUpperCase()}.` };
   }
 };
 
@@ -35475,7 +35521,8 @@ var BUILTIN_RULES = [
   NET001,
   NET002,
   META001,
-  META002
+  META002,
+  META003
 ];
 
 // src/report/sarif.ts
@@ -35699,6 +35746,26 @@ function isBlockedAddress(ip) {
   return true;
 }
 
+// src/probe/image.ts
+function imageSize(buf) {
+  if (buf.length >= 24 && buf.readUInt32BE(0) === 2303741511 && buf.toString("ascii", 12, 16) === "IHDR") {
+    return { format: "png", width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+  }
+  if (buf.length >= 4 && buf[0] === 255 && buf[1] === 216) {
+    let i = 2;
+    while (i + 9 < buf.length) {
+      if (buf[i] !== 255) return void 0;
+      const marker = buf[i + 1];
+      const len = buf.readUInt16BE(i + 2);
+      if (marker >= 192 && marker <= 207 && ![196, 200, 204].includes(marker)) {
+        return { format: "jpeg", height: buf.readUInt16BE(i + 5), width: buf.readUInt16BE(i + 7) };
+      }
+      i += 2 + len;
+    }
+  }
+  return void 0;
+}
+
 // src/probe/http.ts
 import { lookup as dnsLookup } from "node:dns/promises";
 import { request as httpRequest } from "node:http";
@@ -35749,7 +35816,7 @@ async function safeRequest(url, options = {}) {
   let current = parseUrl(url, options);
   let currentMethod = method;
   for (; ; ) {
-    const res = await once(current, currentMethod, headers, { deadline, maxBytes, policy, resolver, ca: options.ca });
+    const res = await once(current, currentMethod, headers, { deadline, maxBytes, policy, resolver, ca: options.ca, binary: options.binary });
     const location2 = res.headers.location;
     if (!REDIRECT_STATUSES.has(res.status) || typeof location2 !== "string") {
       return { ...res, url: redactUrl(current.toString()), redirects, ms: Date.now() - started };
@@ -35819,10 +35886,12 @@ async function once(url, method, headers, o) {
       let truncated = false;
       const finish = () => {
         clearTimeout(timer);
+        const all3 = Buffer.concat(chunks);
         resolve4({
           status: res.statusCode ?? 0,
           headers: res.headers,
-          body: Buffer.concat(chunks).toString("utf8"),
+          body: o.binary ? "" : all3.toString("utf8"),
+          ...o.binary ? { buffer: all3 } : {},
           bytes,
           truncated,
           remoteAddress: req.socket?.remoteAddress
@@ -35958,6 +36027,16 @@ async function call(url, operation, headers, opts, maxBytes) {
   }
   return record;
 }
+async function fetchIcon(url, opts) {
+  const shown = redactUrl(url);
+  try {
+    const r = await safeRequest(url, { ...opts.request, timeoutMs: 15e3, maxBytes: 2 * 1024 * 1024, binary: true });
+    const size = r.buffer ? imageSize(r.buffer) : void 0;
+    return { url: shown, status: r.status, contentType: String(r.headers["content-type"] ?? ""), ...size ?? {} };
+  } catch (err) {
+    return { url: shown, error: err instanceof ProbeError ? err.message : "request failed" };
+  }
+}
 async function runProbe(input2, connector, opts = {}) {
   const target = probeTarget(input2, connector);
   if (!target.url) return { enabled: true, target: "", requests: [], skipped: [], error: target.reason ?? "No probe target." };
@@ -35971,6 +36050,7 @@ async function runProbe(input2, connector, opts = {}) {
   } catch {
     result.dns = { addresses: [], blocked: [], error: `${host} does not resolve.` };
   }
+  if (connector.iconUrl) result.icon = await fetchIcon(connector.iconUrl, opts);
   if (!result.dns.addresses.length || result.dns.blocked.length) return result;
   if (input2.kind === "mcp") {
     const r = await call(target.url, void 0, void 0, opts, BODY_SAMPLE_BYTES);

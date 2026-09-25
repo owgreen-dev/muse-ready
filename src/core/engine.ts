@@ -7,8 +7,18 @@ import { RULESET_DATE, TOOL_NAME, TOOL_VERSION } from "./version.js";
 
 export function connectorFrom(input: LoadedInput, config: Config): ConnectorMeta {
   // OpenAPI docs may carry Muse metadata under info.x-muse; the config file wins over it.
-  const fromSpec = input.kind === "openapi" ? (input.doc?.info?.["x-muse"] ?? {}) : {};
-  return { ...fromSpec, ...(config.connector ?? {}) };
+  const info = input.kind === "openapi" ? (input.doc?.info ?? {}) : {};
+  // Standard OpenAPI fields first, then info.x-muse, then the config file.
+  const standard = {
+    ...(typeof info.title === "string" ? { name: info.title } : {}),
+    ...(typeof info.description === "string" ? { description: info.description } : {}),
+    ...(typeof info.contact?.url === "string" ? { websiteUrl: info.contact.url } : {}),
+    ...(typeof info.contact?.email === "string" ? { supportEmail: info.contact.email } : {}),
+    ...(typeof info.termsOfService === "string" ? { termsUrl: info.termsOfService } : {}),
+    ...(typeof info["x-logo"]?.url === "string" ? { iconUrl: info["x-logo"].url } : {}),
+    ...(input.kind === "openapi" && typeof input.doc?.externalDocs?.url === "string" ? { docsUrl: input.doc.externalDocs.url } : {}),
+  };
+  return { ...standard, ...(info["x-muse"] ?? {}), ...(config.connector ?? {}) };
 }
 
 export async function runRules(input: LoadedInput, rules: Rule[], config: Config = {}, probe?: ProbeResult, simulation?: Report["simulation"]): Promise<Report> {

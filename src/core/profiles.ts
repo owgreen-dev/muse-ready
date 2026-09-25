@@ -42,7 +42,7 @@ export const PROFILES: Record<string, Profile> = {
     title: "Claude connectors",
     description: "Claude custom connectors and the Anthropic Connectors Directory (remote MCP).",
     goal: "submitting to the Claude Connectors Directory",
-    rules: { AUTH001: "off", AUTH002: "high", MCP002: "high", SCOPE002: "critical", META002: "off", IDEM001: "low" },
+    rules: { AUTH001: "off", AUTH002: "high", MCP002: "high", SCOPE002: "critical", META001: "medium", META002: "off", META003: "low", IDEM001: "low" },
     reasons: {
       AUTH001: "Claude connectors use OAuth for authenticated services, so a static header is not required (claude.com/docs/connectors/building/submission).",
       AUTH002: "OAuth is the expected path, so a broken OAuth setup is a real blocker.",
@@ -50,6 +50,8 @@ export const PROFILES: Record<string, Profile> = {
       SCOPE002: "The directory requires readOnlyHint or destructiveHint on every tool (claude.com/docs/connectors/building/submission).",
       META002: "Claude connectors are MCP servers, not OpenAPI documents fetched by URL.",
       IDEM001: "Useful, but not a directory requirement.",
+      META001: "The listing fields follow Muse's form; Anthropic's directory asks for similar material, so gaps still matter.",
+      META003: "The 512x512 icon size comes from Muse's form, not Anthropic's.",
     },
   },
   "openai-apps": {
@@ -57,12 +59,14 @@ export const PROFILES: Record<string, Profile> = {
     title: "ChatGPT Apps",
     description: "ChatGPT apps built with the OpenAI Apps SDK (MCP server plus OAuth 2.1).",
     goal: "submitting as a ChatGPT app",
-    rules: { AUTH001: "off", AUTH002: "high", MCP002: "medium", META002: "off" },
+    rules: { AUTH001: "off", AUTH002: "high", MCP002: "medium", META001: "medium", META002: "off", META003: "low" },
     reasons: {
       AUTH001: "Apps SDK authentication is OAuth 2.1 with ChatGPT as the client, so static headers are not the path (developers.openai.com/plugins/build/auth).",
       AUTH002: "OAuth 2.1 with discovery and client registration (DCR or CIMD) is required for authenticated apps.",
       MCP002: "Tool titles help ChatGPT show what an app is doing; recommended, not verified as required.",
       META002: "Apps are MCP servers, not OpenAPI documents fetched by URL.",
+      META001: "The listing fields follow Muse's form; ChatGPT app submission asks for similar material.",
+      META003: "The 512x512 icon size comes from Muse's form.",
     },
   },
   gemini: {
@@ -70,8 +74,9 @@ export const PROFILES: Record<string, Profile> = {
     title: "Gemini CLI",
     description: "Remote MCP servers used from Gemini CLI.",
     goal: "using this from Gemini CLI",
-    rules: { AUTH001: "low", AUTH002: "medium", MCP002: "low", META001: "off", META002: "off" },
+    rules: { AUTH001: "low", AUTH002: "medium", MCP002: "low", META001: "off", META002: "off", META003: "off" },
     reasons: {
+      META003: "No directory listing, so no icon.",
       AUTH001: "Gemini CLI supports OAuth discovery as well as static headers, so static auth is optional (github.com/google-gemini/gemini-cli docs/tools/mcp-server.md).",
       AUTH002: "OAuth discovery is supported; a broken setup matters but has a header fallback.",
       MCP002: "Not required by Gemini CLI.",
@@ -84,8 +89,9 @@ export const PROFILES: Record<string, Profile> = {
     title: "Generic MCP",
     description: "Any MCP client following the MCP authorization spec (OAuth 2.1 recommended for HTTP transports).",
     goal: "publishing this MCP server",
-    rules: { AUTH001: "low", AUTH002: "medium", MCP002: "medium", META001: "off", META002: "off" },
+    rules: { AUTH001: "low", AUTH002: "medium", MCP002: "medium", META001: "off", META002: "off", META003: "off" },
     reasons: {
+      META003: "No directory listing, so no icon.",
       AUTH001: "The MCP spec recommends OAuth 2.1 for HTTP transports; many clients also accept static headers.",
       AUTH002: "OAuth is the spec's path, so it should work.",
       MCP002: "Titles are optional in the MCP spec but help every client.",

@@ -34,6 +34,8 @@ export interface SafeRequestOptions {
   addressPolicy?: (address: string) => boolean;
   /** Extra CA certificates for TLS verification (tests). Verification itself can never be turned off. */
   ca?: string | Buffer;
+  /** Also return the raw bytes (for images). */
+  binary?: boolean;
 }
 
 export interface SafeResponse {
@@ -46,6 +48,8 @@ export interface SafeResponse {
   ms: number;
   redirects: string[];
   remoteAddress?: string;
+  /** Raw body bytes, only when options.binary is set. */
+  buffer?: Buffer;
 }
 
 export type ProbeErrorCode =
@@ -106,7 +110,7 @@ export async function safeRequest(url: string, options: SafeRequestOptions = {})
   let currentMethod = method;
 
   for (;;) {
-    const res = await once(current, currentMethod, headers, { deadline, maxBytes, policy, resolver, ca: options.ca });
+    const res = await once(current, currentMethod, headers, { deadline, maxBytes, policy, resolver, ca: options.ca, binary: options.binary });
     const location = res.headers.location;
     if (!REDIRECT_STATUSES.has(res.status) || typeof location !== "string") {
       return { ...res, url: redactUrl(current.toString()), redirects, ms: Date.now() - started };
@@ -148,6 +152,7 @@ interface OnceOptions {
   policy: (address: string) => boolean;
   resolver: Resolver;
   ca?: string | Buffer;
+  binary?: boolean;
 }
 
 async function once(
@@ -199,10 +204,12 @@ async function once(
       let truncated = false;
       const finish = () => {
         clearTimeout(timer);
+        const all = Buffer.concat(chunks);
         resolve({
           status: res.statusCode ?? 0,
           headers: res.headers,
-          body: Buffer.concat(chunks).toString("utf8"),
+          body: o.binary ? "" : all.toString("utf8"),
+          ...(o.binary ? { buffer: all } : {}),
           bytes,
           truncated,
           remoteAddress: req.socket?.remoteAddress,

@@ -9,6 +9,15 @@
     "iconUrl": "https://example.com/icon.png",
     "privacyPolicyUrl": "https://example.com/privacy",
     "termsUrl": "https://example.com/terms",
-    "auth": "bearer"
+    "auth": "bearer",
+    "company": "Example Tasks Inc.",
+    "websiteUrl": "https://example.com",
+    "supportEmail": "help@example.com",
+    "docsUrl": "https://example.com/docs",
+    "examplePrompts": [
+      "What is on my task list?",
+      "Add renew the domain to my tasks",
+      "Mark the launch task as done"
+    ]
   }
 }

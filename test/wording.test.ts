@@ -25,14 +25,18 @@ describe("report wording", () => {
 
   it("META001 separates required from recommended gaps", async () => {
     const bare = result(await run("bad/meta001-no-listing.openapi.yaml"), "META001");
-    expect(bare.message).toBe("3 required fields missing, 2 recommended.");
+    expect(bare.message).toBe("8 required fields missing, 1 recommended.");
 
     const oneEach = result(
       await run("bad/meta001-no-listing.openapi.yaml", {
         connector: {
           description: "A long enough description of what this connector does for people.",
-          termsUrl: "https://example.com/terms",
+          websiteUrl: "https://example.com",
+          examplePrompts: ["Ping the service", "Is the API up?", "Check status"],
           iconUrl: "https://example.com/icon.png",
+          supportEmail: "help@example.com",
+          privacyPolicyUrl: "https://example.com/privacy",
+          termsUrl: "https://example.com/terms",
         },
       }),
       "META001",

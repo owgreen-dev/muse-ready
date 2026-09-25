@@ -13,6 +13,7 @@ import { MCP001 } from "./mcp001.js";
 import { MCP002 } from "./mcp002.js";
 import { META001 } from "./meta001.js";
 import { META002 } from "./meta002.js";
+import { META003 } from "./meta003.js";
 import { NET001 } from "./net001.js";
 import { PAGE001 } from "./page001.js";
 import { SCOPE001 } from "./scope001.js";
@@ -31,5 +32,5 @@ export const BUILTIN_RULES: Rule[] = [
   INJ001,
   ERR001, ERR002, PAGE001, PAGE002, LAT001,
   NET001, NET002,
-  META001, META002,
+  META001, META002, META003,
 ];

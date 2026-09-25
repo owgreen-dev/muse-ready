@@ -4,6 +4,7 @@ import { isSecured, operations, returnsList, serverUrls, successSchema, type Ope
 import type { ConnectorMeta, LoadedInput, ProbeRequest, ProbeResult } from "../core/types.js";
 import { WRITE_VERBS, firstWord } from "../rules/util.js";
 import { isBlockedAddress } from "./address.js";
+import { imageSize } from "./image.js";
 import { ProbeError, redactUrl, safeRequest, type SafeRequestOptions } from "./http.js";
 
 export const MAX_OPERATIONS = 8;
@@ -101,6 +102,18 @@ async function call(url: string, operation: string | undefined, headers: Record<
   return record;
 }
 
+async function fetchIcon(url: string, opts: ProbeOptions): Promise<NonNullable<ProbeResult["icon"]>> {
+  const shown = redactUrl(url);
+  try {
+    // No credentials: the icon is public listing material.
+    const r = await safeRequest(url, { ...opts.request, timeoutMs: 15_000, maxBytes: 2 * 1024 * 1024, binary: true });
+    const size = r.buffer ? imageSize(r.buffer) : undefined;
+    return { url: shown, status: r.status, contentType: String(r.headers["content-type"] ?? ""), ...(size ?? {}) };
+  } catch (err) {
+    return { url: shown, error: err instanceof ProbeError ? err.message : "request failed" };
+  }
+}
+
 /** Runs the live probe. Sends only GET/HEAD requests, never throws, and records every request. */
 export async function runProbe(input: LoadedInput, connector: ConnectorMeta, opts: ProbeOptions = {}): Promise<ProbeResult> {
   const target = probeTarget(input, connector);
@@ -117,6 +130,7 @@ export async function runProbe(input: LoadedInput, connector: ConnectorMeta, opt
   } catch {
     result.dns = { addresses: [], blocked: [], error: `${host} does not resolve.` };
   }
+  if (connector.iconUrl) result.icon = await fetchIcon(connector.iconUrl, opts);
   if (!result.dns.addresses.length || result.dns.blocked.length) return result;
 
   if (input.kind === "mcp") {

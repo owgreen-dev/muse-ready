@@ -6,6 +6,15 @@
     "privacyPolicyUrl": "https://notes.example.com/privacy",
     "termsUrl": "https://notes.example.com/terms",
     "auth": "bearer",
-    "serverUrl": "https://mcp.notes.example.com/mcp"
+    "serverUrl": "https://mcp.notes.example.com/mcp",
+    "company": "Example Notes Co.",
+    "websiteUrl": "https://notes.example.com",
+    "supportEmail": "help@notes.example.com",
+    "docsUrl": "https://notes.example.com/docs",
+    "examplePrompts": [
+      "Find my notes about the Q3 launch",
+      "What did I write about the dentist?",
+      "Delete the note called 'old ideas'"
+    ]
   }
 }

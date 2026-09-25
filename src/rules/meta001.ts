@@ -3,6 +3,7 @@ import { checkPublicUrl } from "./net001.js";
 import { aggregate, plural } from "./util.js";
 
 const MIN_DESCRIPTION = 40;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function str(v: unknown): string | undefined {
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
@@ -16,40 +17,45 @@ export const META001: Rule = {
   subscores: ["directory"],
   appliesTo: ["openapi", "mcp"],
   rationale:
-    "Directory submissions are reviewed for 'functional, security and legal requirements' (muse.ai/platform). Meta publishes no checklist yet, so this asks for what every app directory requires: name, description, icon, privacy policy and terms.",
-  run({ input, connector }) {
-    const info = input.kind === "openapi" ? (input.doc?.info ?? {}) : {};
+    "Muse's directory submission form asks for a name, description, website, example prompts, a 512x512 icon, a support email, privacy policy, terms of service and a documentation link (Manufact walkthrough of the form, 22-24 Sep 2026; third-party, not Meta docs). Set missing fields under connector in muse-ready.config.json or info.x-muse.",
+  run({ connector: c }) {
     const fails: Finding[] = [];
     const warns: Finding[] = [];
-    const muse = ["info", "x-muse"];
+    const where = ["info"];
+    const need = (ok: boolean, label: string) => ok || fails.push({ message: `No ${label}`, pointer: where });
 
-    const name = str(connector.name) ?? str(info.title);
-    if (!name) fails.push({ message: "No connector name (info.title or connector.name)", pointer: ["info"] });
+    need(!!str(c.name), "connector name (info.title or connector.name)");
+    const description = str(c.description);
+    need(!!description, "description (info.description or connector.description)");
+    if (description && description.length < MIN_DESCRIPTION) warns.push({ message: `Description is only ${description.length} characters`, pointer: where });
+    need(!!str(c.websiteUrl), "website (info.contact.url or connector.websiteUrl)");
+    const prompts = Array.isArray(c.examplePrompts) ? c.examplePrompts.filter((p) => typeof p === "string" && p.trim()) : [];
+    need(prompts.length > 0, "example prompts (connector.examplePrompts)");
+    if (prompts.length > 0 && prompts.length < 3) warns.push({ message: `Only ${plural(prompts.length, "example prompt")}; three or more show the range of what it does`, pointer: where });
+    need(!!str(c.iconUrl), "icon URL, 512x512 (connector.iconUrl or info.x-logo.url)");
+    const email = str(c.supportEmail);
+    need(!!email, "support email (info.contact.email or connector.supportEmail)");
+    if (email && !EMAIL.test(email)) warns.push({ message: `Support email "${email}" doesn't look like an email address`, pointer: where });
+    need(!!str(c.privacyPolicyUrl), "privacy policy URL (connector.privacyPolicyUrl)");
+    need(!!str(c.termsUrl), "terms of service URL (info.termsOfService or connector.termsUrl)");
+    need(!!str(c.docsUrl), "documentation URL (externalDocs.url or connector.docsUrl)");
+    if (!str(c.company)) warns.push({ message: "No company name (connector.company)", pointer: where });
 
-    const description = str(connector.description) ?? str(info.description);
-    if (!description) fails.push({ message: "No connector description (info.description or connector.description)", pointer: ["info"] });
-    else if (description.length < MIN_DESCRIPTION) warns.push({ message: `Description is only ${description.length} characters`, pointer: ["info", "description"] });
-
-    const links: [string, string | undefined, "fail" | "warn"][] = [
-      ["privacy policy URL (connector.privacyPolicyUrl)", str(connector.privacyPolicyUrl), "fail"],
-      ["terms of service URL (info.termsOfService or connector.termsUrl)", str(connector.termsUrl) ?? str(info.termsOfService), "fail"],
-      ["icon URL (connector.iconUrl or info.x-logo.url)", str(connector.iconUrl) ?? str(info["x-logo"]?.url), "warn"],
-    ];
-    for (const [label, value, level] of links) {
-      if (!value) {
-        (level === "fail" ? fails : warns).push({ message: `No ${label}`, pointer: muse });
-        continue;
-      }
-      const problem = checkPublicUrl(value);
-      if (problem) warns.push({ message: `${label}: ${problem.message}`, pointer: muse });
-    }
-    if (input.kind === "openapi" && !str(info.contact?.email) && !str(info.contact?.url)) {
-      warns.push({ message: "No support contact (info.contact.email or info.contact.url)", pointer: ["info"] });
+    for (const [label, value] of [
+      ["website", c.websiteUrl],
+      ["icon URL", c.iconUrl],
+      ["privacy policy URL", c.privacyPolicyUrl],
+      ["terms URL", c.termsUrl],
+      ["documentation URL", c.docsUrl],
+    ] as const) {
+      const v = str(value);
+      const problem = v ? checkPublicUrl(v) : undefined;
+      if (problem) warns.push({ message: `${label}: ${problem.message}`, pointer: where });
     }
 
     const recommended = warns.length ? `, ${warns.length} recommended` : "";
     return aggregate(fails, warns, {
-      pass: "Name, description, icon, privacy policy and terms are all present.",
+      pass: "Every field the Muse submission form asks for is present.",
       fail: `${plural(fails.length, "required field")} missing${recommended}.`,
       warn: `No required fields missing, ${warns.length} recommended.`,
     });

@@ -190,9 +190,14 @@ Put `muse-ready.config.json` (or `.yaml`) in the directory you run from, or pass
   "rules": { "IDEM001": "off", "SPEC002": "low" },
   "failUnder": 80,
   "connector": {
+    "company": "Example Inc.",
+    "websiteUrl": "https://example.com",
+    "supportEmail": "help@example.com",
+    "docsUrl": "https://example.com/docs",
+    "examplePrompts": ["What's on my list?", "Add milk", "Delete yesterday's note"],
     "privacyPolicyUrl": "https://example.com/privacy",
     "termsUrl": "https://example.com/terms",
-    "iconUrl": "https://example.com/icon.png",
+    "iconUrl": "https://example.com/icon-512.png",
     "auth": "bearer",
     "serverUrl": "https://mcp.example.com/mcp"
   }
@@ -243,6 +248,7 @@ console.log(report.score.overall, report.gate.passed);
 | [NET002](#net002) | Live: resolves to public addresses and TLS verifies | critical | openapi, mcp | directory, custom |
 | [META001](#meta001) | Directory listing metadata is complete | high | openapi, mcp | directory |
 | [META002](#meta002) | Spec is published at a public URL | high | openapi | directory, custom |
+| [META003](#meta003) | Live: listing icon is a reachable 512x512 image | medium | openapi, mcp | directory |
 
 ### SPEC001
 
@@ -326,11 +332,15 @@ console.log(report.score.overall, report.gate.passed);
 
 ### META001
 
-**Directory listing metadata is complete.** Directory submissions are reviewed for 'functional, security and legal requirements' (muse.ai/platform). Meta publishes no checklist yet, so this asks for what every app directory requires: name, description, icon, privacy policy and terms.
+**Directory listing metadata is complete.** Muse's directory submission form asks for a name, description, website, example prompts, a 512x512 icon, a support email, privacy policy, terms of service and a documentation link (Manufact walkthrough of the form, 22-24 Sep 2026; third-party, not Meta docs). Set missing fields under connector in muse-ready.config.json or info.x-muse.
 
 ### META002
 
 **Spec is published at a public URL.** The clean path for a Muse custom connector is handing it a public, unauthenticated OpenAPI URL (Parallel hands-on test). A spec behind a login wall forces Muse to scrape docs instead.
+
+### META003
+
+**Live: listing icon is a reachable 512x512 image.** Muse's submission form asks for a 512x512 icon (Manufact walkthrough, 22-24 Sep 2026; third-party). Checked live with --probe by reading the image header; nothing is uploaded anywhere.
 
 ## Not yet
 
