@@ -51,6 +51,15 @@ describe("profiles", () => {
     expect(titled.get("MCP002")?.status).toBe("pass");
   });
 
+  it("recommends output schemas for MCP tools outside the Muse profiles", async () => {
+    const config = JSON.parse(readFileSync(fixture("good/notes-mcp.config.json"), "utf8"));
+    const muse = ids(await run("good/notes-mcp.tools.json", config));
+    const mcp = ids(await run("good/notes-mcp.tools.json", { ...config, profile: "mcp" }));
+    expect(muse.has("MCP003")).toBe(false);
+    expect(mcp.get("MCP003")?.status).toBe("warn");
+    expect(mcp.get("MCP003")?.findings[0]?.message).toContain('"search_notes" has no object outputSchema');
+  });
+
   it("lets the user's config override the profile", async () => {
     const report = ids(await run("bad/auth001-oauth-only.openapi.yaml", { profile: "claude", rules: { AUTH001: "high" } }));
     expect(report.get("AUTH001")?.severity).toBe("high");

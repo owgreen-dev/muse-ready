@@ -155,3 +155,20 @@ All six automatable tasks pass. T-007 to T-010 are human tasks (see prd.json). S
 
 **Tests:** `test/simulate.cli.test.ts` drives the real CLI and the bundled Action against `test/fake-model.ts`. Suite: 145 tests.
 **Still needed:** H-102, a real model plus key, for a first real run. The Meta Model API base URL is not recorded here; take it from Meta's docs.
+
+## 2026-09-25 - T-106 to T-109 (from the 9/25 research review in base.md)
+
+- **T-106:** the profiles are now `muse-custom` (the default; `muse` is an alias) and `muse-directory`. Under muse-directory, AUTH001 is low, AUTH002 high and META002 low, because the form accepts API keys or OAuth with PKCE and the OpenAPI spec is optional. Each profile has a `goal` for the blocking message.
+- **T-107:**
+  - META001 now requires what the submission form asks for: name, description, website, example prompts, icon, support email, privacy policy, terms and a docs link. Company is recommended.
+  - Standard OpenAPI fields fill these in: `info.contact.url` and `.email`, `externalDocs.url`, `x-logo`.
+  - META003 fetches the icon under `--probe` and reads the PNG or JPEG header for its size. `safeRequest` gained a `binary` option for this.
+- **T-108:** AUTH003 is live OAuth discovery. It reads RFC 9728 metadata (path-aware) and RFC 8414 or OpenID Connect metadata, and checks for S256, CIMD versus DCR-only, iss support (RFC 9207), and a WWW-Authenticate `resource_metadata` pointer on 401s. It runs when OAuth is declared, or is attempted for MCP servers whose auth type isn't set. Discovery is GET-only and never sends credentials (tested).
+- **T-109:** DCR wording refreshed in the profiles, RULESET_DATE set to 2026-09-25, and MCP003 (outputSchema) added, off for the Muse profiles.
+
+**Still open:**
+- Tool-list stability and stateless-transport checks need JSON-RPC POSTs, which the GET-only probe deliberately never sends. That's a human decision.
+- The meta-ai-connectors profile waits for the Sept 30 requirements.
+- The launch drafts need repositioning.
+
+Suite: 25 rules, 158 tests.

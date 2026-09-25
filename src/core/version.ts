@@ -8,4 +8,4 @@ export const TOOL_VERSION = pkg.version;
  * Date the Muse-specific assumptions in the ruleset were last checked against public sources.
  * Muse changes weekly: bump this whenever a rule is revised against new evidence.
  */
-export const RULESET_DATE = "2026-09-23";
+export const RULESET_DATE = "2026-09-25";

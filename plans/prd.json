@@ -185,8 +185,9 @@
         "MCP003 (low): tools declare an outputSchema; off for muse profiles",
         "bash scripts/verify.sh passes"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "",
+      "completed_at": "2026-09-25T04:42:00-04:00"
     }
   ]
 }

@@ -17983,8 +17983,9 @@ var PROFILES = {
     title: "Muse custom connector",
     description: "A connector Muse builds for one user from your public API (default; alias: muse).",
     goal: "using this as a Muse custom connector",
-    rules: { MCP002: "off", AUTH003: "medium" },
+    rules: { MCP002: "off", MCP003: "off", AUTH003: "medium" },
     reasons: {
+      MCP003: "Muse publishes no structured-output requirement.",
       MCP002: "Custom connectors have no tool-title requirement.",
       AUTH003: "Custom connectors work best with a static token (AUTH001), so OAuth conformance matters less here."
     }
@@ -17994,8 +17995,9 @@ var PROFILES = {
     title: "Muse directory",
     description: "A reviewed listing submitted at muse.ai/platform, as a Raw API or an existing hosted MCP endpoint.",
     goal: "submitting to the Muse directory",
-    rules: { AUTH001: "low", AUTH002: "high", META002: "low", MCP002: "off" },
+    rules: { AUTH001: "low", AUTH002: "high", META002: "low", MCP002: "off", MCP003: "off" },
     reasons: {
+      MCP003: "Muse publishes no structured-output requirement.",
       AUTH001: `${FORM} lists "API keys" and "OAuth with PKCE" as auth options, so a static token is not required for a directory listing.`,
       AUTH002: "With OAuth accepted, a broken OAuth setup becomes the blocker.",
       META002: `${FORM} takes an API URL with an optional OpenAPI spec, so a public spec URL helps but is not required.`,
@@ -18027,7 +18029,7 @@ var PROFILES = {
     rules: { AUTH001: "off", AUTH002: "high", MCP002: "medium", META001: "medium", META002: "off", META003: "low" },
     reasons: {
       AUTH001: "Apps SDK authentication is OAuth 2.1 with ChatGPT as the client, so static headers are not the path (developers.openai.com/plugins/build/auth).",
-      AUTH002: "OAuth 2.1 with discovery and client registration (DCR or CIMD) is required for authenticated apps.",
+      AUTH002: "OAuth 2.1 with discovery is required for authenticated apps. OpenAI prefers Client ID Metadata Documents; MCP 2026-07-28 deprecates Dynamic Client Registration but it still works.",
       MCP002: "Tool titles help ChatGPT show what an app is doing; recommended, not verified as required.",
       META002: "Apps are MCP servers, not OpenAPI documents fetched by URL.",
       META001: "The listing fields follow Muse's form; ChatGPT app submission asks for similar material.",
@@ -18058,7 +18060,7 @@ var PROFILES = {
     reasons: {
       META003: "No directory listing, so no icon.",
       AUTH001: "The MCP spec recommends OAuth 2.1 for HTTP transports; many clients also accept static headers.",
-      AUTH002: "OAuth is the spec's path, so it should work.",
+      AUTH002: "OAuth is the spec's path, so it should work. Per MCP 2026-07-28, prefer Client ID Metadata Documents over the deprecated Dynamic Client Registration.",
       MCP002: "Titles are optional in the MCP spec but help every client.",
       META001: "There is no directory for generic MCP.",
       META002: MUSE_ONLY
@@ -18112,7 +18114,7 @@ import { createRequire } from "node:module";
 var pkg = createRequire(import.meta.url)("../../package.json");
 var TOOL_NAME = pkg.name;
 var TOOL_VERSION = pkg.version;
-var RULESET_DATE = "2026-09-23";
+var RULESET_DATE = "2026-09-25";
 
 // src/core/engine.ts
 function connectorFrom(input2, config) {
@@ -35062,6 +35064,32 @@ var MCP002 = {
   }
 };
 
+// src/rules/mcp003.ts
+var MCP003 = {
+  id: "MCP003",
+  title: "MCP tools declare an output schema",
+  category: "description",
+  severity: "low",
+  subscores: ["custom"],
+  appliesTo: ["mcp"],
+  rationale: "The MCP spec lets tools declare an outputSchema and return matching structuredContent, so agents can rely on result fields instead of parsing text. Recommended, not required; off in the Muse profiles, which publish no such requirement.",
+  run({ input: input2 }) {
+    const tools = (input2.tools ?? []).filter((t) => t && typeof t === "object");
+    if (tools.length === 0) return { status: "not-applicable", message: "No tools to check." };
+    const base = Array.isArray(input2.doc) ? [] : input2.doc?.result ? ["result", "tools"] : ["tools"];
+    const warns = [];
+    (input2.tools ?? []).forEach((t, i) => {
+      const schema = t?.outputSchema;
+      if (!schema || typeof schema !== "object" || schema.type !== "object") warns.push({ message: `Tool "${String(t?.name)}" has no object outputSchema`, pointer: [...base, i] });
+    });
+    return aggregate([], warns, {
+      pass: `Every tool declares an output schema.`,
+      fail: "",
+      warn: `${plural(warns.length, "tool")} without an output schema.`
+    });
+  }
+};
+
 // src/rules/net001.ts
 import { isIP } from "node:net";
 function isPrivateHost(host) {
@@ -35553,6 +35581,7 @@ var BUILTIN_RULES = [
   SPEC002,
   MCP001,
   MCP002,
+  MCP003,
   DESC001,
   SPEAK001,
   AUTH001,

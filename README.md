@@ -233,6 +233,7 @@ console.log(report.score.overall, report.gate.passed);
 | [SPEC002](#spec002) | Uses OpenAPI 3.1 | medium | openapi | custom |
 | [MCP001](#mcp001) | MCP tool definitions are well-formed | high | mcp | directory, custom |
 | [MCP002](#mcp002) | MCP tools declare a human-readable title | medium | mcp | directory |
+| [MCP003](#mcp003) | MCP tools declare an output schema | low | mcp | custom |
 | [DESC001](#desc001) | Every operation or tool is described | high | openapi, mcp | directory, custom |
 | [SPEAK001](#speak001) | Responses include something short enough to say aloud | medium | openapi | custom |
 | [AUTH001](#auth001) | Accepts a static bearer token or API-key header | critical | openapi, mcp | directory, custom |
@@ -269,6 +270,10 @@ console.log(report.score.overall, report.gate.passed);
 ### MCP002
 
 **MCP tools declare a human-readable title.** Anthropic's Connectors Directory requires a title on every tool, and clients use it to show people what the agent is doing. Off in the Muse profile, which publishes no such requirement.
+
+### MCP003
+
+**MCP tools declare an output schema.** The MCP spec lets tools declare an outputSchema and return matching structuredContent, so agents can rely on result fields instead of parsing text. Recommended, not required; off in the Muse profiles, which publish no such requirement.
 
 ### DESC001
 
