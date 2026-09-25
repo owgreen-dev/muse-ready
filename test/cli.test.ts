@@ -52,7 +52,7 @@ describe("cli", () => {
     ]);
     expect(JSON.parse(stdout).score.overall).toBe(100);
     expect(JSON.parse(readFileSync(out("r.json"), "utf8")).input.kind).toBe("openapi");
-    expect(readFileSync(out("r.md"), "utf8")).toContain("Muse readiness");
+    expect(readFileSync(out("r.md"), "utf8")).toContain("readiness:");
     expect(JSON.parse(readFileSync(out("r.sarif"), "utf8")).version).toBe("2.1.0");
     expect(JSON.parse(readFileSync(out("b.json"), "utf8")).schemaVersion).toBe(1);
   });
@@ -90,7 +90,9 @@ describe("cli", () => {
     expect(stdout).toContain("profile claude");
     expect(stdout).not.toContain("AUTH001");
     const listed = await runCli(["--list-profiles"]);
-    for (const p of ["muse", "claude", "openai-apps", "gemini", "mcp"]) expect(listed.stdout).toContain(p);
+    for (const p of ["muse-custom", "muse-directory", "claude", "openai-apps", "gemini", "mcp"]) expect(listed.stdout).toContain(p);
+    const directory = await runCli([fixture("bad/auth001-oauth-only.openapi.yaml"), "--profile", "muse-directory", "--no-color"]);
+    expect(directory.stdout).toContain("before submitting to the Muse directory");
     expect((await runCli([fixture("good/tasks-api.openapi.yaml"), "--profile", "nope"])).code).not.toBe(0);
   });
 

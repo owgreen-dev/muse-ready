@@ -1,4 +1,5 @@
 import pc from "picocolors";
+import { getProfile } from "../core/profiles.js";
 import type { Report, RuleResult, Status } from "../core/types.js";
 
 const ICON: Record<Status, string> = { pass: "✔", warn: "▲", fail: "✖", "not-applicable": "–" };
@@ -57,7 +58,7 @@ export function renderTerminal(report: Report, opts: { color?: boolean; verbose?
   lines.push(
     gate.passed
       ? c.green("No blocking failures in auth, injection or network.")
-      : c.red(`Blocked by ${gate.blocking.join(", ")}. Fix these before submitting to ${report.profile.title}.`),
+      : c.red(`Blocked by ${gate.blocking.join(", ")}. Fix these before ${getProfile(report.profile.id).goal}.`),
   );
   return lines.join("\n");
 }

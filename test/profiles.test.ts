@@ -8,11 +8,25 @@ import { fixture, run } from "./helpers.js";
 const ids = (report: Awaited<ReturnType<typeof run>>) => new Map(report.results.map((r) => [r.id, r]));
 
 describe("profiles", () => {
-  it("defaults to muse and leaves the Muse report unchanged", async () => {
+  it("defaults to muse-custom and leaves the Muse report unchanged", async () => {
     const report = await run("good/tasks-api.openapi.yaml");
-    expect(report.profile).toEqual({ id: "muse", title: "Meta Muse" });
+    expect(report.profile).toEqual({ id: "muse-custom", title: "Muse custom connector" });
     expect(report.score.overall).toBe(100);
     expect(ids(report).has("MCP002")).toBe(false);
+  });
+
+  it("keeps muse as an alias for muse-custom", async () => {
+    const aliased = await run("bad/auth001-oauth-only.openapi.yaml", { profile: "muse" });
+    expect(aliased.profile.id).toBe("muse-custom");
+    expect(aliased.gate.blocking).toContain("AUTH001");
+  });
+
+  it("blocks OAuth-only for custom connectors but not for a directory listing", async () => {
+    const custom = await run("bad/auth001-oauth-only.openapi.yaml", { profile: "muse-custom" });
+    const directory = ids(await run("bad/auth001-oauth-only.openapi.yaml", { profile: "muse-directory" }));
+    expect(custom.gate.blocking).toContain("AUTH001");
+    expect(directory.get("AUTH001")?.severity).toBe("low");
+    expect(directory.get("AUTH002")?.severity).toBe("high"); // the implicit flow still matters
   });
 
   it("treats OAuth-only as a Muse blocker but correct for Claude", async () => {

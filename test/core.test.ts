@@ -123,7 +123,7 @@ describe("report formats", () => {
 
   it("Markdown lists findings and escapes table pipes", async () => {
     const md = renderMarkdown(await run("bad/scope003-no-confirm.openapi.yaml"));
-    expect(md).toContain("# Muse readiness: Money API");
+    expect(md).toContain("# Muse custom connector readiness: Money API");
     expect(md).toContain("## Findings");
     expect(md).toContain("POST /payments");
   });

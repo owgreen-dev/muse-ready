@@ -172,7 +172,8 @@ npx muse-ready --list-profiles                   # every override and why
 
 | Profile | Main differences from `muse` |
 |---|---|
-| `muse` (default) | Needs a long-lived static token; OAuth-only fails |
+| `muse-custom` (default; `muse` also works) | A connector Muse builds for one user: needs a long-lived static token, and OAuth-only blocks |
+| `muse-directory` | A reviewed listing at muse.ai/platform: API keys or OAuth with PKCE both accepted; a public OpenAPI spec is optional |
 | `claude` | OAuth expected; every tool needs a title and a read-only or destructive annotation |
 | `openai-apps` | OAuth 2.1 with client registration expected; static tokens aren't the path |
 | `gemini` | OAuth or static headers both fine; no directory listing checks |

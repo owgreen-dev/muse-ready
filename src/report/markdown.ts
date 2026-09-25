@@ -10,7 +10,7 @@ export function renderMarkdown(report: Report): string {
   const { input, score, gate } = report;
   const title = input.title ?? input.source;
   const out: string[] = [];
-  out.push(`# ${report.profile.id === "muse" ? "Muse" : esc(report.profile.title)} readiness: ${esc(title)}`);
+  out.push(`# ${esc(report.profile.title)} readiness: ${esc(title)}`);
   out.push("");
   out.push(`**Score: ${score.overall}/100 (${score.grade})**`);
   const sub: string[] = [];

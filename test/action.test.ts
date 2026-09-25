@@ -67,7 +67,7 @@ describe("GitHub Action", () => {
     const r = await runAction({ spec: fixture("good/tasks-api.openapi.yaml"), "badge-file": "badge.json" });
     expect(r.code).toBe(0);
     expect(r.outputs).toEqual({ score: "100", grade: "A+", passed: "true", "sarif-file": "muse-ready.sarif" });
-    expect(r.summary).toContain("# Muse readiness: Tasks API");
+    expect(r.summary).toContain("# Muse custom connector readiness: Tasks API");
     expect(JSON.parse(readFileSync(join(r.ws, "muse-ready.sarif"), "utf8")).version).toBe("2.1.0");
     expect(JSON.parse(readFileSync(join(r.ws, "badge.json"), "utf8")).message).toBe("100/100 A+");
     expect(r.stdout).toContain("Readiness 100/100 A+");

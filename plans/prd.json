@@ -130,6 +130,61 @@
       "skip": true,
       "skipReason": "Outward-facing posts need the user's approval.",
       "notes": "base.md validation bar: 30+ stars and 5+ Action installs in two weeks, plus 3 people saying they'd pay for hosted simulation. This is the cheapest way to test Readiness Pro demand before building the hosted part."
+    },
+    {
+      "id": "T-106",
+      "title": "Split the Muse profile into muse-custom and muse-directory",
+      "priority": "high",
+      "acceptanceCriteria": [
+        "muse-custom keeps today's behaviour (OAuth-only blocks); muse-directory accepts API keys or OAuth with PKCE, per the submission form",
+        "muse stays accepted as an alias for muse-custom so existing configs and CI keep working",
+        "Each override cites its source; tests show OAuth-only blocks under muse-custom but not muse-directory",
+        "bash scripts/verify.sh passes"
+      ],
+      "passes": true,
+      "notes": "Source: Manufact submission-form walkthrough (2026-09-22/24), third-party.",
+      "completed_at": "2026-09-25T04:36:23-04:00"
+    },
+    {
+      "id": "T-107",
+      "title": "META001 matches the real submission form; icon checked live",
+      "priority": "high",
+      "acceptanceCriteria": [
+        "Required: name, description, website, example prompts, icon, support email, privacy policy, terms, documentation link; company recommended",
+        "New connector fields: company, websiteUrl, supportEmail, docsUrl, examplePrompts (also readable from info.x-muse and OpenAPI info/externalDocs)",
+        "With --probe, the icon URL is fetched with the safe client and reported if it is not a 512x512 PNG or JPEG",
+        "Good fixtures updated; tests cover required vs recommended",
+        "bash scripts/verify.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "T-108",
+      "title": "MCP OAuth conformance under --probe (RFC 9728, RFC 8414, PKCE S256, CIMD vs DCR, RFC 9207)",
+      "priority": "high",
+      "acceptanceCriteria": [
+        "For OAuth servers, the probe GETs /.well-known/oauth-protected-resource and the authorization server metadata with the safe client; no credentials, GET only",
+        "Fails when protected-resource metadata is missing; warns when S256 is missing, when only DCR (deprecated in MCP 2026-07-28) is offered without CIMD, or when iss (RFC 9207) is not advertised",
+        "Not applicable for static-token servers or without --probe",
+        "Tests against local metadata servers cover each outcome",
+        "bash scripts/verify.sh passes"
+      ],
+      "passes": false,
+      "notes": "Tool-list stability and stateless transport need JSON-RPC POSTs, which the GET-only probe deliberately never sends; deferred for a human decision."
+    },
+    {
+      "id": "T-109",
+      "title": "Refresh DCR wording in profiles; bump ruleset date; add MCP003 outputSchema check",
+      "priority": "medium",
+      "acceptanceCriteria": [
+        "Profile reasons reflect MCP 2026-07-28: CIMD preferred, DCR deprecated but accepted",
+        "RULESET_DATE is 2026-09-25",
+        "MCP003 (low): tools declare an outputSchema; off for muse profiles",
+        "bash scripts/verify.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
     }
   ]
 }

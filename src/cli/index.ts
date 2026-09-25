@@ -15,7 +15,7 @@ import { renderMarkdown } from "../report/markdown.js";
 import { renderSarif } from "../report/sarif.js";
 import { renderTerminal } from "../report/terminal.js";
 import { BUILTIN_RULES } from "../rules/index.js";
-import { PROFILES, getProfile } from "../core/profiles.js";
+import { PROFILES, PROFILE_ALIASES, getProfile } from "../core/profiles.js";
 
 const EXIT_OK = 0;
 const EXIT_FAILED = 1;
@@ -37,7 +37,7 @@ const program = new Command()
   .option("--md <file>", "also write a Markdown report to a file")
   .option("--sarif <file>", "also write SARIF for GitHub code scanning to a file")
   .option("--badge <file>", "also write shields.io endpoint JSON for a README badge")
-  .addOption(new Option("-p, --profile <profile>", "target platform").choices(Object.keys(PROFILES)))
+  .addOption(new Option("-p, --profile <profile>", "target platform").choices([...Object.keys(PROFILES), ...Object.keys(PROFILE_ALIASES)]))
   .option("--list-profiles", "print the platform profiles and how they change the rules, then exit")
   .addOption(new Option("--kind <kind>", "input type, if auto-detection guesses wrong").choices(["openapi", "mcp"]))
   .option("-c, --config <file>", "config file (default: muse-ready.config.{json,yaml,yml} in the current directory)")

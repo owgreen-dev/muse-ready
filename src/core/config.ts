@@ -6,7 +6,7 @@ import type { ConnectorMeta, Severity } from "./types.js";
 export type RuleSetting = "off" | Severity;
 
 export interface Config {
-  /** Target platform: muse (default), claude, openai-apps, gemini or mcp. */
+  /** Target platform: muse-custom (default; alias muse), muse-directory, claude, openai-apps, gemini or mcp. */
   profile?: string;
   /** Turn a rule off or change its severity, keyed by rule ID. */
   rules?: Record<string, RuleSetting>;
