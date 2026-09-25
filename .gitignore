@@ -12,7 +12,10 @@ muse-ready-report.*
 .claude/ralph-state.local.md
 .claude/ralph-status.local.json
 scripts/ralph/runs/
-
+# Secrets: never commit
+.env
+.env.*
+!.env.example
 # Private sales drafts, never commit
 outreach*/
 drafts/
