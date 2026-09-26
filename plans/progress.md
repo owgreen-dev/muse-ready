@@ -203,3 +203,20 @@ Suite: 25 rules, 158 tests.
 
 **How to run** (the key stays in `.env`, which is gitignored):
 `( set -a; . ./.env; set +a; MUSE_READY_LLM_KEY="$OPENAI_API_KEY" node dist/cli/index.js <spec> --simulate <tasks> --model gpt-4.1-mini --model-base-url https://api.openai.com/v1 )`
+
+## 2026-09-26 - Handoff
+
+**State:**
+- v0.4.1 is on npm and GitHub, and CI passes. `main` is clean and in sync.
+- 27 rules and 172 tests. The gate is `bash scripts/verify.sh`.
+- All tasks in `plans/prd.json` pass except the human-only ones.
+
+**Next:**
+1. Review and approve the launch posts (kept locally, not in the repo).
+2. After the Meta AI Connectors preview (Sept 30) publishes its requirements, add a `meta-ai-connectors` profile.
+3. Watch for Meta's developer portal, the Muse Connector Terms and any official validator. Bump RULESET_DATE when rules change.
+
+**Release routine:**
+- `npm version <x.y.z> -m "release: v<x.y.z>"`, then `git push --follow-tags`.
+- Wait for CI to pass, then `npm login` and `npm publish --otp=…`.
+- Re-pin `docs/examples/muse-ready.yml` and the README to the release commit.
